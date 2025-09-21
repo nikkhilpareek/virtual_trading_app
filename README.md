@@ -1,7 +1,7 @@
 # Virtual Stock Trading App
 A easy to use app for learning stock trading. Use the In-App Currency to buy/sell stocks and learn how the stock market works.
 
-> TEAM: Nikhil Pareek, Drhruv Sharma, Deepak Vishwakarma
+> TEAM: Nikhil Pareek, Dhruv Sharma, Deepak Vishwakarma
 
 
 ## Features (Planned to be Added in the App)
