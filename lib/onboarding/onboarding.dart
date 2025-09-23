@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/sliding_button.dart';
+import '../auth/login.dart';
 
 class Onboarding extends StatelessWidget {
   const Onboarding({super.key});
@@ -88,7 +89,7 @@ class Onboarding extends StatelessWidget {
               // Illustration
               Container(
                 height: 300,
-                width: 400,
+                width: 250,
                 child: Image.asset(
                   'assets/images/illustration.png',
                   fit: BoxFit.fill,
@@ -102,8 +103,13 @@ class Onboarding extends StatelessWidget {
                 sliderColor: const Color(0xFFE5BCE7), // Orange slider color
                 textColor: Colors.black,
                 onSlideComplete: () {
-                  // Navigate to next screen
-                  print('Slide completed!');
+                  // Navigate to login screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginPage(),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 40),
