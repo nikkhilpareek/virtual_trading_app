@@ -53,6 +53,7 @@ dependencies:
   
   # Device preview for development
   device_preview: ^1.1.0
+  supabase_flutter: ^2.10.3
 
 dev_dependencies:
   flutter_test:

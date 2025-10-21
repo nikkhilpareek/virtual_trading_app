@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
-import 'onboarding/onboarding.dart';
+import 'auth/auth_gate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async{
+
+  //supabase setup
+  await Supabase.initialize(
+    url: 'https://edmeobztjodvmichfmej.supabase.co',
+    anonKey: 'sb_publishable_-DSF2QJyQ860fN9mEnKHRg__IlB3CLp',
+  );
+
+
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,
@@ -26,7 +35,7 @@ class MyApp extends StatelessWidget {
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
-      home: Onboarding(),
+      home: const AuthGate(),
     );
   }
 }

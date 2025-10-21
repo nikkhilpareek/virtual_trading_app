@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:virtual_trading_app/auth/auth_service.dart';
 import 'signup.dart';
-import '../screens/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,15 +10,69 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Login method
+  void login() async {
+    // Validate inputs
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both email and password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Attempt to sign in
+      await authService.signInWithEmailPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      // Success - navigation will be handled by AuthGate
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -228,15 +282,7 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Navigate to home page after successful login
-                        Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomePage(),
-                      ),
-                    );
-                      },
+                      onPressed: _isLoading ? null : login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE5BCE7),
                         foregroundColor: Colors.black,
@@ -245,14 +291,23 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         elevation: 0,
                       ),
-                      child: Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                              ),
+                            )
+                          : Text(
+                              'Sign In',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                   
