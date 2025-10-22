@@ -70,10 +70,11 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      // Attempt to sign up
+      // Attempt to sign up with full name metadata
       await authService.signUpWithEmailPassword(
         _emailController.text.trim(),
         _passwordController.text,
+        fullName: _nameController.text.trim(),
       );
 
       // Success - pop back to AuthGate
