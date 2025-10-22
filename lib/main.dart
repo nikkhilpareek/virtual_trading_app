@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'auth/auth_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/blocs/blocs.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +21,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Stonks',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => UserBloc()..add(const LoadUserProfile()),
+        ),
+        BlocProvider(
+          create: (context) => HoldingsBloc()..add(const LoadHoldings()),
+        ),
+        BlocProvider(
+          create: (context) => TransactionBloc(),
+        ),
+        BlocProvider(
+          create: (context) => WatchlistBloc()..add(const LoadWatchlist()),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Stonks',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        home: const AuthGate(),
       ),
-      home: const AuthGate(),
     );
   }
 }

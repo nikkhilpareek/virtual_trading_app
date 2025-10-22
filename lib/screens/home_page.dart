@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../core/blocs/blocs.dart';
+import '../core/models/models.dart';
+import 'market_screen.dart';
+import 'watchlist_screen.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -102,11 +107,23 @@ class _HomePageState extends State<HomePage> {
 }
 
 // Dashboard Screen (Home Tab)
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final String userName;
   
   const DashboardScreen({super.key, required this.userName});
 
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load transactions when dashboard loads
+    context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,29 +137,38 @@ class DashboardScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Left side - Hello, User!
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Hello, ',
-                        style: TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w300,
-                          color: Colors.white,
-                        ),
+                BlocBuilder<UserBloc, UserState>(
+                  builder: (context, state) {
+                    String displayName = widget.userName;
+                    if (state is UserLoaded) {
+                      displayName = state.profile.displayName;
+                    }
+                    
+                    return RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Hello, ',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w300,
+                              color: Colors.white,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '$displayName!',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-                      TextSpan(
-                        text: '$userName!',
-                        style: TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 
                 // Right side - Notification bell and profile icons
@@ -217,58 +243,213 @@ class DashboardScreen extends StatelessWidget {
             
             const SizedBox(height: 20),
             
-            // Recent Activity placeholder
+            // Recent Activity from TransactionBloc
             Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xff1a1a1a),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Recent Activity',
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.trending_up,
-                              size: 60,
-                              color: Colors.white.withOpacity(0.3),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No recent activity yet',
-                              style: TextStyle(
-                                fontFamily: 'ClashDisplay',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white.withOpacity(0.5),
-                              ),
-                            ),
-                          ],
+              child: BlocBuilder<TransactionBloc, TransactionState>(
+                builder: (context, state) {
+                  if (state is TransactionLoading) {
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff1a1a1a),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
                         ),
                       ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFE5BCE7),
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  if (state is TransactionLoaded && state.transactions.isNotEmpty) {
+                    // Show only the last 5 transactions
+                    final recentTransactions = state.transactions.take(5).toList();
+                    
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff1a1a1a),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Recent Activity',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: ListView.separated(
+                              itemCount: recentTransactions.length,
+                              separatorBuilder: (context, index) => Divider(
+                                color: Colors.white.withOpacity(0.1),
+                                height: 24,
+                              ),
+                              itemBuilder: (context, index) {
+                                final transaction = recentTransactions[index];
+                                final isBuy = transaction.transactionType == TransactionType.buy;
+                                
+                                return Row(
+                                  children: [
+                                    // Icon
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: (isBuy ? Colors.green : Colors.red).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        isBuy ? Icons.arrow_downward : Icons.arrow_upward,
+                                        color: isBuy ? Colors.green : Colors.red,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    
+                                    // Asset details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            transaction.assetSymbol,
+                                            style: TextStyle(
+                                              fontFamily: 'ClashDisplay',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${transaction.quantity} shares @ ${transaction.pricePerUnit.toStringAsFixed(2)} ST',
+                                            style: TextStyle(
+                                              fontFamily: 'ClashDisplay',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.white.withOpacity(0.5),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    
+                                    // Amount
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${isBuy ? '-' : '+'}${transaction.totalAmount.toStringAsFixed(2)} ST',
+                                          style: TextStyle(
+                                            fontFamily: 'ClashDisplay',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: isBuy ? Colors.red : Colors.green,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          transaction.formattedDate,
+                                          style: TextStyle(
+                                            fontFamily: 'ClashDisplay',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w400,
+                                            color: Colors.white.withOpacity(0.5),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  // Empty state
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff1a1a1a),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
                     ),
-                  ],
-                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recent Activity',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.trending_up,
+                                  size: 60,
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No recent activity yet',
+                                  style: TextStyle(
+                                    fontFamily: 'ClashDisplay',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Start trading to see your activity',
+                                  style: TextStyle(
+                                    fontFamily: 'ClashDisplay',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -278,87 +459,178 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildBalanceCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xff1a1a1a),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with title and info icon
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Your Portfolio Balance',
-                style: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.7),
+    return BlocBuilder<UserBloc, UserState>(
+      builder: (context, userState) {
+        return BlocBuilder<HoldingsBloc, HoldingsState>(
+          builder: (context, holdingsState) {
+            // Default values
+            double stonkBalance = 0.0;
+            double portfolioValue = 0.0;
+            double profitLoss = 0.0;
+            double profitLossPercentage = 0.0;
+            
+            // Get user balance
+            if (userState is UserLoaded) {
+              stonkBalance = userState.profile.stonkBalance;
+            }
+            
+            // Get portfolio stats
+            if (holdingsState is HoldingsLoaded) {
+              portfolioValue = holdingsState.totalValue;
+              profitLoss = holdingsState.totalProfitLoss;
+              profitLossPercentage = holdingsState.totalProfitLossPercentage;
+            }
+            
+            // Total balance = Stonk Tokens + Portfolio Value
+            double totalBalance = stonkBalance + portfolioValue;
+            
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xff1a1a1a),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
                 ),
               ),
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5BCE7).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.info,
-                  color: Color(0xFFE5BCE7),
-                  size: 16,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with title and info icon
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Your Portfolio Balance',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5BCE7).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.info,
+                          color: Color(0xFFE5BCE7),
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Total balance amount
+                  Text(
+                    '${totalBalance.toStringAsFixed(2)} ST',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 32,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.0,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Breakdown
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Available',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${stonkBalance.toStringAsFixed(2)} ST',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Invested',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${portfolioValue.toStringAsFixed(2)} ST',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  if (profitLoss != 0) ...[
+                    const SizedBox(height: 12),
+                    
+                    // Percentage change
+                    Row(
+                      children: [
+                        Icon(
+                          profitLoss >= 0 ? Icons.trending_up : Icons.trending_down,
+                          color: profitLoss >= 0 ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${profitLoss >= 0 ? '+' : ''}${profitLossPercentage.toStringAsFixed(2)}% (${profitLoss >= 0 ? '+' : ''}${profitLoss.toStringAsFixed(2)} ST)',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: profitLoss >= 0 ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Balance amount
-          Text(
-            '₹10,713.95',
-            style: TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontSize: 32,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              height: 1.0,
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          // Percentage change
-          Row(
-            children: [
-              Icon(
-                Icons.trending_up,
-                color: Colors.green,
-                size: 16,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '+2.34% (+₹245.67)',
-                style: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -455,69 +727,6 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// Market Screen
-class MarketScreen extends StatelessWidget {
-  const MarketScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
-      appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: const Text(
-          'Market',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search, color: Colors.white),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.trending_up,
-              size: 80,
-              color: Color(0xFFE5BCE7),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Market Screen',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Coming Soon...',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // Learn Screen
 class LearnScreen extends StatelessWidget {
   const LearnScreen({super.key});
@@ -561,69 +770,6 @@ class LearnScreen extends StatelessWidget {
             SizedBox(height: 10),
             Text(
               'Educational content coming soon...',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Watchlist Screen
-class WatchlistScreen extends StatelessWidget {
-  const WatchlistScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
-      appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: const Text(
-          'Watchlist',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.bookmark,
-              size: 80,
-              color: Color(0xFFE5BCE7),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Watchlist',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Your saved stocks will appear here...',
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
                 fontSize: 16,
