@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../utils/currency_formatter.dart';
 
 /// User Profile Model
 /// Represents a user's profile data stored in Supabase
@@ -75,7 +76,7 @@ class UserProfile extends Equatable {
   bool get hasAvatar => avatarUrl != null && avatarUrl!.isNotEmpty;
 
   /// Format balance with currency
-  String get formattedBalance => '${stonkBalance.toStringAsFixed(2)} ST';
+  String get formattedBalance => CurrencyFormatter.formatINR(stonkBalance);
 
   @override
   List<Object?> get props => [

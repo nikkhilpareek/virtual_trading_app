@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/blocs/blocs.dart';
 import '../auth/auth_gate.dart';
+import '../core/utils/currency_formatter.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -292,7 +293,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${balance.toStringAsFixed(2)} ST',
+            CurrencyFormatter.formatINR(balance),
             style: const TextStyle(
               fontFamily: 'ClashDisplay',
               fontSize: 36,
@@ -303,7 +304,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Stonk Tokens',
+            'Indian Rupees',
             style: TextStyle(
               fontFamily: 'ClashDisplay',
               fontSize: 12,
@@ -371,7 +372,7 @@ class ProfileScreen extends StatelessWidget {
                   Expanded(
                     child: _buildStatItem(
                       'Invested',
-                      '${totalInvested.toStringAsFixed(0)} ST',
+                      CurrencyFormatter.formatINRCompact(totalInvested),
                       Icons.trending_up,
                     ),
                   ),
@@ -385,7 +386,7 @@ class ProfileScreen extends StatelessWidget {
                   Expanded(
                     child: _buildStatItem(
                       'Value',
-                      '${totalValue.toStringAsFixed(0)} ST',
+                      CurrencyFormatter.formatINRCompact(totalValue),
                       Icons.account_balance_wallet,
                     ),
                   ),
@@ -397,7 +398,7 @@ class ProfileScreen extends StatelessWidget {
                   Expanded(
                     child: _buildStatItem(
                       'P&L',
-                      '${profitLoss >= 0 ? '+' : ''}${profitLoss.toStringAsFixed(0)} ST',
+                      '${profitLoss >= 0 ? '+' : ''}${CurrencyFormatter.formatINRCompact(profitLoss).replaceAll('₹', '')}',
                       profitLoss >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
                       valueColor: profitLoss >= 0 ? Colors.green : Colors.red,
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
+import '../core/utils/currency_formatter.dart';
 import 'market_screen.dart';
 import 'watchlist_screen.dart';
 import 'profile_screen.dart';
@@ -346,7 +347,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${transaction.quantity} shares @ ${transaction.pricePerUnit.toStringAsFixed(2)} ST',
+                                            '${transaction.quantity} shares @ ${CurrencyFormatter.formatINR(transaction.pricePerUnit)}',
                                             style: TextStyle(
                                               fontFamily: 'ClashDisplay',
                                               fontSize: 12,
@@ -363,7 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          '${isBuy ? '-' : '+'}${transaction.totalAmount.toStringAsFixed(2)} ST',
+                                          '${isBuy ? '-' : '+'}${CurrencyFormatter.formatINR(transaction.totalAmount).replaceAll('₹', '')}',
                                           style: TextStyle(
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 16,
@@ -537,7 +538,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   
                   // Total balance amount
                   Text(
-                    '${totalBalance.toStringAsFixed(2)} ST',
+                    CurrencyFormatter.formatINR(totalBalance),
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 32,
@@ -567,8 +568,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${stonkBalance.toStringAsFixed(2)} ST',
-                              style: TextStyle(
+                              CurrencyFormatter.formatINRCompact(stonkBalance),
+                              style: const TextStyle(
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -593,7 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${portfolioValue.toStringAsFixed(2)} ST',
+                              CurrencyFormatter.formatINR(portfolioValue),
                               style: TextStyle(
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 16,
@@ -620,7 +621,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${profitLoss >= 0 ? '+' : ''}${profitLossPercentage.toStringAsFixed(2)}% (${profitLoss >= 0 ? '+' : ''}${profitLoss.toStringAsFixed(2)} ST)',
+                          '${CurrencyFormatter.formatPercentage(profitLossPercentage)} (${profitLoss >= 0 ? '+' : ''}${CurrencyFormatter.formatINR(profitLoss).replaceAll('₹', '')})',
                           style: TextStyle(
                             fontFamily: 'ClashDisplay',
                             fontSize: 14,

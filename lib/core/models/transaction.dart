@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'asset_type.dart';
+import '../utils/currency_formatter.dart';
 
 /// Transaction Type Enum
 enum TransactionType {
@@ -120,11 +121,11 @@ class Transaction extends Equatable {
 
   String get formattedQuantity => quantity.toStringAsFixed(6);
   
-  String get formattedPricePerUnit => '${pricePerUnit.toStringAsFixed(2)} ST';
+  String get formattedPricePerUnit => CurrencyFormatter.formatINR(pricePerUnit);
   
-  String get formattedTotalAmount => '${totalAmount.toStringAsFixed(2)} ST';
+  String get formattedTotalAmount => CurrencyFormatter.formatINR(totalAmount);
   
-  String get formattedBalanceAfter => '${balanceAfter.toStringAsFixed(2)} ST';
+  String get formattedBalanceAfter => CurrencyFormatter.formatINR(balanceAfter);
   
   String get formattedDate {
     final now = DateTime.now();

@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
+import '../core/services/alpha_vantage_service.dart';
+import '../core/utils/currency_formatter.dart';
 
-// Mock market data (In a real app, this would come from an API)
+// Market asset data model with real-time prices
 class MarketAsset {
   final String symbol;
   final String name;
   final double currentPrice;
   final double changePercentage;
   final AssetType type;
+  final DateTime? lastUpdated;
 
   const MarketAsset({
     required this.symbol,
@@ -17,93 +20,49 @@ class MarketAsset {
     required this.currentPrice,
     required this.changePercentage,
     required this.type,
+    this.lastUpdated,
   });
+
+  MarketAsset copyWith({
+    String? symbol,
+    String? name,
+    double? currentPrice,
+    double? changePercentage,
+    AssetType? type,
+    DateTime? lastUpdated,
+  }) {
+    return MarketAsset(
+      symbol: symbol ?? this.symbol,
+      name: name ?? this.name,
+      currentPrice: currentPrice ?? this.currentPrice,
+      changePercentage: changePercentage ?? this.changePercentage,
+      type: type ?? this.type,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+    );
+  }
 }
 
-// Mock data for demonstration
-final List<MarketAsset> _mockMarketData = [
-  // Stocks
-  const MarketAsset(
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    currentPrice: 178.50,
-    changePercentage: 2.34,
-    type: AssetType.stock,
-  ),
-  const MarketAsset(
-    symbol: 'GOOGL',
-    name: 'Alphabet Inc.',
-    currentPrice: 142.30,
-    changePercentage: -1.25,
-    type: AssetType.stock,
-  ),
-  const MarketAsset(
-    symbol: 'MSFT',
-    name: 'Microsoft Corp.',
-    currentPrice: 378.91,
-    changePercentage: 1.89,
-    type: AssetType.stock,
-  ),
-  const MarketAsset(
-    symbol: 'TSLA',
-    name: 'Tesla Inc.',
-    currentPrice: 242.15,
-    changePercentage: 4.56,
-    type: AssetType.stock,
-  ),
-  const MarketAsset(
-    symbol: 'AMZN',
-    name: 'Amazon.com Inc.',
-    currentPrice: 152.43,
-    changePercentage: 0.87,
-    type: AssetType.stock,
-  ),
-  const MarketAsset(
-    symbol: 'NVDA',
-    name: 'NVIDIA Corp.',
-    currentPrice: 495.22,
-    changePercentage: 3.21,
-    type: AssetType.stock,
-  ),
+// Asset definitions for Indian Market (NSE/BSE)
+// Prices will be fetched from Alpha Vantage API
+const List<Map<String, dynamic>> _assetDefinitions = [
+  // Indian Stocks (NSE/BSE)
+  {'symbol': 'RELIANCE.BSE', 'name': 'Reliance Industries', 'type': AssetType.stock},
+  {'symbol': 'TCS.BSE', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
+  {'symbol': 'INFY.BSE', 'name': 'Infosys Limited', 'type': AssetType.stock},
+  {'symbol': 'HDFCBANK.BSE', 'name': 'HDFC Bank', 'type': AssetType.stock},
+  {'symbol': 'ICICIBANK.BSE', 'name': 'ICICI Bank', 'type': AssetType.stock},
+  {'symbol': 'BHARTIARTL.BSE', 'name': 'Bharti Airtel', 'type': AssetType.stock},
+  {'symbol': 'ITC.BSE', 'name': 'ITC Limited', 'type': AssetType.stock},
+  {'symbol': 'WIPRO.BSE', 'name': 'Wipro Limited', 'type': AssetType.stock},
   
-  // Crypto
-  const MarketAsset(
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    currentPrice: 67890.00,
-    changePercentage: 5.67,
-    type: AssetType.crypto,
-  ),
-  const MarketAsset(
-    symbol: 'ETH',
-    name: 'Ethereum',
-    currentPrice: 3450.75,
-    changePercentage: -2.34,
-    type: AssetType.crypto,
-  ),
-  const MarketAsset(
-    symbol: 'BNB',
-    name: 'Binance Coin',
-    currentPrice: 425.30,
-    changePercentage: 1.45,
-    type: AssetType.crypto,
-  ),
+  // Crypto (INR pairs)
+  {'symbol': 'BTC', 'name': 'Bitcoin', 'type': AssetType.crypto},
+  {'symbol': 'ETH', 'name': 'Ethereum', 'type': AssetType.crypto},
+  {'symbol': 'BNB', 'name': 'Binance Coin', 'type': AssetType.crypto},
   
-  // Mutual Funds
-  const MarketAsset(
-    symbol: 'VFIAX',
-    name: 'Vanguard 500 Index',
-    currentPrice: 425.67,
-    changePercentage: 0.52,
-    type: AssetType.mutualFund,
-  ),
-  const MarketAsset(
-    symbol: 'FXAIX',
-    name: 'Fidelity 500 Index',
-    currentPrice: 178.45,
-    changePercentage: 0.48,
-    type: AssetType.mutualFund,
-  ),
+  // Mutual Funds (Indian)
+  {'symbol': 'SBI.BSE', 'name': 'SBI Mutual Fund', 'type': AssetType.mutualFund},
+  {'symbol': 'AXIS.BSE', 'name': 'Axis Mutual Fund', 'type': AssetType.mutualFund},
 ];
 
 class MarketScreen extends StatefulWidget {
@@ -114,11 +73,141 @@ class MarketScreen extends StatefulWidget {
 }
 
 class _MarketScreenState extends State<MarketScreen> {
+  final AlphaVantageService _apiService = AlphaVantageService();
+  
   AssetType? _selectedFilter;
   String _searchQuery = '';
+  
+  List<MarketAsset> _marketData = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  DateTime? _lastRefresh;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMarketData();
+  }
+
+  Future<void> _loadMarketData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final List<MarketAsset> assets = [];
+
+      // Load stocks
+      final stockSymbols = _assetDefinitions
+          .where((a) => a['type'] == AssetType.stock)
+          .map((a) => a['symbol'] as String)
+          .toList();
+
+      for (final symbol in stockSymbols) {
+        final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
+        try {
+          final quote = await _apiService.getStockQuote(symbol);
+          if (quote != null) {
+            assets.add(MarketAsset(
+              symbol: symbol,
+              name: assetDef['name'] as String,
+              currentPrice: quote.price,
+              changePercentage: quote.changePercent,
+              type: AssetType.stock,
+              lastUpdated: DateTime.now(),
+            ));
+          }
+          
+          // Small delay to avoid rate limiting
+          await Future.delayed(const Duration(milliseconds: 600));
+        } catch (e) {
+          print('Error loading stock $symbol: $e');
+        }
+      }
+
+      // Load crypto
+      final cryptoSymbols = _assetDefinitions
+          .where((a) => a['type'] == AssetType.crypto)
+          .map((a) => a['symbol'] as String)
+          .toList();
+
+      for (final symbol in cryptoSymbols) {
+        final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
+        try {
+          final quote = await _apiService.getCryptoQuote(symbol);
+          if (quote != null) {
+            assets.add(MarketAsset(
+              symbol: symbol,
+              name: assetDef['name'] as String,
+              currentPrice: quote.price,
+              changePercentage: quote.changePercent,
+              type: AssetType.crypto,
+              lastUpdated: DateTime.now(),
+            ));
+          }
+          
+          // Small delay to avoid rate limiting
+          await Future.delayed(const Duration(milliseconds: 600));
+        } catch (e) {
+          print('Error loading crypto $symbol: $e');
+        }
+      }
+
+      // Load mutual funds (fallback to placeholder since Alpha Vantage may not support all)
+      final mutualFundSymbols = _assetDefinitions
+          .where((a) => a['type'] == AssetType.mutualFund)
+          .toList();
+
+      for (final assetDef in mutualFundSymbols) {
+        try {
+          final quote = await _apiService.getStockQuote(assetDef['symbol'] as String);
+          if (quote != null) {
+            assets.add(MarketAsset(
+              symbol: assetDef['symbol'] as String,
+              name: assetDef['name'] as String,
+              currentPrice: quote.price,
+              changePercentage: quote.changePercent,
+              type: AssetType.mutualFund,
+              lastUpdated: DateTime.now(),
+            ));
+          }
+          
+          await Future.delayed(const Duration(milliseconds: 600));
+        } catch (e) {
+          print('Error loading mutual fund ${assetDef['symbol']}: $e');
+          // Add placeholder data for mutual funds if API fails
+          assets.add(MarketAsset(
+            symbol: assetDef['symbol'] as String,
+            name: assetDef['name'] as String,
+            currentPrice: 0.0, // Will show as unavailable
+            changePercentage: 0.0,
+            type: AssetType.mutualFund,
+            lastUpdated: null,
+          ));
+        }
+      }
+
+      setState(() {
+        _marketData = assets;
+        _isLoading = false;
+        _lastRefresh = DateTime.now();
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load market data: $e';
+      });
+    }
+  }
+
+  Future<void> _refreshData() async {
+    _apiService.clearCache();
+    await _loadMarketData();
+  }
 
   List<MarketAsset> get _filteredAssets {
-    var assets = _mockMarketData;
+    var assets = _marketData;
     
     // Filter by type
     if (_selectedFilter != null) {
@@ -143,17 +232,45 @@ class _MarketScreenState extends State<MarketScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xff0a0a0a),
         elevation: 0,
-        title: const Text(
-          'Market',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Market',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            if (_lastRefresh != null)
+              Text(
+                'Last updated: ${_formatTime(_lastRefresh!)}',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+              ),
+          ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.refresh,
+              color: _isLoading ? Colors.grey : const Color(0xFFE5BCE7),
+            ),
+            onPressed: _isLoading ? null : _refreshData,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      body: Column(
+      body: _isLoading && _marketData.isEmpty
+          ? _buildLoadingState()
+          : _errorMessage != null && _marketData.isEmpty
+              ? _buildErrorState()
+              : Column(
         children: [
           // Search bar
           Padding(
@@ -358,7 +475,7 @@ class _MarketScreenState extends State<MarketScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${asset.currentPrice.toStringAsFixed(2)} ST',
+                  CurrencyFormatter.formatINR(asset.currentPrice),
                   style: const TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 16,
@@ -376,7 +493,7 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${isPositive ? '+' : ''}${asset.changePercentage.toStringAsFixed(2)}%',
+                      CurrencyFormatter.formatPercentage(asset.changePercentage),
                       style: TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 12,
@@ -435,6 +552,100 @@ class _MarketScreenState extends State<MarketScreen> {
       isScrollControlled: true,
       builder: (context) => TradeDialog(asset: asset),
     );
+  }
+  
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: Color(0xFFE5BCE7),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading market data...',
+            style: TextStyle(
+              fontFamily: 'ClashDisplay',
+              fontSize: 16,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'This may take a moment due to API rate limits',
+            style: TextStyle(
+              fontFamily: 'ClashDisplay',
+              fontSize: 12,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage ?? 'Failed to load market data',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _refreshData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE5BCE7),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Retry',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 }
 
@@ -568,7 +779,7 @@ class _TradeDialogState extends State<TradeDialog> {
                   ),
                 ),
                 Text(
-                  '${widget.asset.currentPrice.toStringAsFixed(2)} ST',
+                  CurrencyFormatter.formatINR(widget.asset.currentPrice),
                   style: const TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 16,
@@ -633,7 +844,7 @@ class _TradeDialogState extends State<TradeDialog> {
                   ),
                 ),
                 Text(
-                  '${_totalAmount.toStringAsFixed(2)} ST',
+                  CurrencyFormatter.formatINR(_totalAmount),
                   style: const TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 18,

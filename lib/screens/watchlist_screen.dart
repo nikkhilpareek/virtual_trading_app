@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
+import '../core/utils/currency_formatter.dart';
 
 class WatchlistScreen extends StatelessWidget {
   const WatchlistScreen({super.key});
@@ -319,7 +320,7 @@ class WatchlistScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${mockPrice.toStringAsFixed(2)} ST',
+                CurrencyFormatter.formatINR(mockPrice),
                 style: const TextStyle(
                   fontFamily: 'ClashDisplay',
                   fontSize: 16,
@@ -337,7 +338,7 @@ class WatchlistScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${isPositive ? '+' : ''}${mockChange.toStringAsFixed(2)}%',
+                    CurrencyFormatter.formatPercentage(mockChange),
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 12,

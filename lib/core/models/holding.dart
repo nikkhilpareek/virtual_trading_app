@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'asset_type.dart';
+import '../utils/currency_formatter.dart';
 
 /// Holding Model
 /// Represents a user's holding of a specific asset (stock/crypto/mutual fund)
@@ -120,23 +121,20 @@ class Holding extends Equatable {
 
   String get formattedQuantity => quantity.toStringAsFixed(6);
   
-  String get formattedAveragePrice => averagePrice.toStringAsFixed(2);
+  String get formattedAveragePrice => CurrencyFormatter.formatINR(averagePrice);
   
-  String get formattedCurrentPrice => currentPrice?.toStringAsFixed(2) ?? '--';
+  String get formattedCurrentPrice => currentPrice != null ? CurrencyFormatter.formatINR(currentPrice!) : '--';
   
-  String get formattedTotalInvested => '${totalInvested.toStringAsFixed(2)} ST';
+  String get formattedTotalInvested => CurrencyFormatter.formatINR(totalInvested);
   
-  String get formattedCurrentValue => '${currentValue.toStringAsFixed(2)} ST';
+  String get formattedCurrentValue => CurrencyFormatter.formatINR(currentValue);
   
   String get formattedProfitLoss {
     final sign = profitLoss >= 0 ? '+' : '';
-    return '$sign${profitLoss.toStringAsFixed(2)} ST';
+    return '$sign${CurrencyFormatter.formatINR(profitLoss).replaceAll('₹', '')}';
   }
   
-  String get formattedProfitLossPercentage {
-    final sign = profitLossPercentage >= 0 ? '+' : '';
-    return '$sign${profitLossPercentage.toStringAsFixed(2)}%';
-  }
+  String get formattedProfitLossPercentage => CurrencyFormatter.formatPercentage(profitLossPercentage);
 
   @override
   List<Object?> get props => [

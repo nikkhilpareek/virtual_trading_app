@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 import 'user_repository.dart';
 import 'holdings_repository.dart';
+import '../utils/currency_formatter.dart';
 
 /// Transaction Repository
 /// Handles all transaction operations and trading logic with Supabase
@@ -115,7 +116,7 @@ class TransactionRepository {
       // Check if user has sufficient balance
       final hasFunds = await _userRepository.hasSufficientBalance(totalAmount);
       if (!hasFunds) {
-        throw Exception('Insufficient Stonk Tokens. Need ${totalAmount.toStringAsFixed(2)} ST');
+        throw Exception('Insufficient balance. Need ${CurrencyFormatter.formatINR(totalAmount)}');
       }
 
       // Deduct amount from balance
