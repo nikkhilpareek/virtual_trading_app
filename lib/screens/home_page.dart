@@ -4,6 +4,7 @@ import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import 'market_screen.dart';
 import 'watchlist_screen.dart';
+import 'profile_screen.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -208,8 +209,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       child: IconButton(
                         onPressed: () {
-                          // Handle profile tap
-                          print('Profile tapped');
+                          // Navigate to profile screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileScreen(),
+                            ),
+                          );
                         },
                         icon: const Icon(
                           Icons.person,
