@@ -47,14 +47,10 @@ class _LoginPageState extends State<LoginPage> {
         _passwordController.text,
       );
 
-      // Success - navigation will be handled by AuthGate
+      // Success - pop back to AuthGate which will now show HomePage
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Pop all routes and go back to root (AuthGate)
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       // Show error message

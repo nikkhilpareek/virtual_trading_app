@@ -57,7 +57,7 @@ class _SlidingButtonState extends State<SlidingButton>
     if (!_isCompleted) {
       final RenderBox renderBox = context.findRenderObject() as RenderBox;
       final containerWidth = renderBox.size.width;
-      final sliderWidth = 120.0; // Fixed width for "Get Started" text
+      final sliderWidth = _getSliderWidth(containerWidth);
       final maxSlideDistance = containerWidth - sliderWidth - 8;
 
       setState(() {
@@ -71,7 +71,7 @@ class _SlidingButtonState extends State<SlidingButton>
     if (!_isCompleted) {
       final RenderBox renderBox = context.findRenderObject() as RenderBox;
       final containerWidth = renderBox.size.width;
-      final sliderWidth = 120.0; // Fixed width for "Get Started" text
+      final sliderWidth = _getSliderWidth(containerWidth);
       final maxSlideDistance = containerWidth - sliderWidth - 8;
 
       if (_dragPosition > maxSlideDistance * 0.8) {
@@ -93,89 +93,114 @@ class _SlidingButtonState extends State<SlidingButton>
     }
   }
 
+  // Calculate responsive slider width based on container width
+  double _getSliderWidth(double containerWidth) {
+    // Use 40% of container width but ensure minimum of 100 and maximum of 140
+    return (containerWidth * 0.4).clamp(100.0, 140.0);
+  }
+
+  // Calculate responsive font size
+  double _getFontSize(double sliderWidth) {
+    // Scale font size based on slider width
+    if (sliderWidth < 110) return 13.0;
+    if (sliderWidth < 125) return 14.5;
+    return 16.0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: widget.backgroundColor,
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-      ),
-      child: Stack(
-        children: [
-          // Arrow icons only in background
-          Positioned.fill(
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Arrow icons
-                  ...List.generate(
-                    5,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(right: 4.0),
-                      child: Icon(
-                        Icons.chevron_right,
-                        color: widget.textColor.withOpacity(0.3),
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final containerWidth = constraints.maxWidth;
+        final sliderWidth = _getSliderWidth(containerWidth);
+        final fontSize = _getFontSize(sliderWidth);
+        
+        return Container(
+          width: double.infinity,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
-          // Sliding button
-          AnimatedBuilder(
-            animation: _animation,
-            builder: (context, child) {
-              return Positioned(
-                left: 4 + _dragPosition,
-                top: 4,
-                child: GestureDetector(
-                  onPanStart: _onPanStart,
-                  onPanUpdate: _onPanUpdate,
-                  onPanEnd: _onPanEnd,
-                  child: Container(
-                    width: 120.0, // Fixed width for "Get Started" text
-                    height: widget.height - 8,
-                    decoration: BoxDecoration(
-                      color: widget.sliderColor,
-                      borderRadius: BorderRadius.circular(widget.borderRadius - 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+          child: Stack(
+            children: [
+              // Arrow icons only in background
+              Positioned.fill(
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Arrow icons
+                      ...List.generate(
+                        5,
+                        (index) => Padding(
+                          padding: const EdgeInsets.only(right: 4.0),
+                          child: Icon(
+                            Icons.chevron_right,
+                            color: widget.textColor.withOpacity(0.3),
+                            size: 18,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Center(
-                      child: _isCompleted
-                          ? Icon(
-                              Icons.check,
-                              color: Colors.black,
-                              size: 24,
-                            )
-                          : Text(
-                              widget.text,
-                              style: TextStyle(
-                                fontFamily: 'ClashDisplay',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                   ),
                 ),
-              );
-            },
+              ),
+              // Sliding button
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  return Positioned(
+                    left: 4 + _dragPosition,
+                    top: 4,
+                    child: GestureDetector(
+                      onPanStart: _onPanStart,
+                      onPanUpdate: _onPanUpdate,
+                      onPanEnd: _onPanEnd,
+                      child: Container(
+                        width: sliderWidth,
+                        height: widget.height - 8,
+                        decoration: BoxDecoration(
+                          color: widget.sliderColor,
+                          borderRadius: BorderRadius.circular(widget.borderRadius - 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: _isCompleted
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.black,
+                                  size: 24,
+                                )
+                              : Text(
+                                  widget.text,
+                                  style: TextStyle(
+                                    fontFamily: 'ClashDisplay',
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

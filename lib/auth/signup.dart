@@ -76,15 +76,22 @@ class _SignupPageState extends State<SignupPage> {
         _passwordController.text,
       );
 
-      // Success - navigation will be handled by AuthGate
+      // Success - pop back to AuthGate
       if (mounted) {
+        // Show success message briefly before navigating
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Account created successfully! Please check your email to verify.'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
+            duration: Duration(seconds: 2),
           ),
         );
+        
+        // Pop all routes and go back to root (AuthGate)
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } catch (e) {
       // Show error message
