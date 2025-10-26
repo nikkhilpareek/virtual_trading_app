@@ -1,4 +1,4 @@
-# Virtual Stock Trading App
+# STONKS - Virtual Stock Trading App
 A easy to use app for learning stock trading. Use the In-App Currency to buy/sell stocks and learn how the stock market works.
 
 > TEAM: Nikhil Pareek, Dhruv Sharma, Deepak Vishwakarma
@@ -6,7 +6,7 @@ A easy to use app for learning stock trading. Use the In-App Currency to buy/sel
 
 ## Features (Planned to be Added in the App)
 - Real- Time Stock Prices for better learning (Real-time might be costly, we can do a 15 min delay in fetching data)
-    1.  For Now Work on only Indian Stock Markets, NSE, BSE
+    1. For Now Work on only Indian Stock Markets, NSE, BSE
     2. Global Exchanges can be a Future Feature
 - Buy/Sell Orders - Basic Buy/Sell feature. 
 - More advanced Buying/Selling Feature also can be added (ex. Limit Order, Stop-Loss etc.)
@@ -29,6 +29,5 @@ A easy to use app for learning stock trading. Use the In-App Currency to buy/sel
 ### Tech Stack 
 - Flutter
 - NodeJS (if needed for backend)
-- Firebase (For Authentication)
+- Supabase (For Authentication, DB & Storage)
 - Figma (For Design)
-
