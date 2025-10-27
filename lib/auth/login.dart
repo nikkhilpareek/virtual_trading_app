@@ -26,7 +26,8 @@ class _LoginPageState extends State<LoginPage> {
   // Login method
   void login() async {
     // Validate inputs
-    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter both email and password'),
@@ -92,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: topPadding),
-                  
+
                   // Title Section
                   Text(
                     'Welcome',
@@ -130,9 +131,9 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: titleSpacing),
-                  
+
                   // Subtitle
                   Text(
                     'Sign in to continue your trading journey.',
@@ -140,13 +141,14 @@ class _LoginPageState extends State<LoginPage> {
                       fontFamily: 'ClashDisplay',
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.7),
+                      // use withAlpha to avoid deprecated withOpacity
+                      color: Colors.white.withAlpha((0.7 * 255).round()),
                       height: 1.5,
                     ),
                   ),
-                  
+
                   SizedBox(height: sectionSpacing),
-                  
+
                   // Email Field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                           color: const Color(0xff1a1a1a),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withAlpha((0.1 * 255).round()),
                           ),
                         ),
                         child: TextField(
@@ -180,7 +182,9 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: 'Enter your email',
                             hintStyle: TextStyle(
                               fontFamily: 'ClashDisplay',
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withAlpha(
+                                (0.5 * 255).round(),
+                              ),
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.all(16),
@@ -190,9 +194,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: fieldSpacing),
-                  
+
                   // Password Field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
                           color: const Color(0xff1a1a1a),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withAlpha((0.1 * 255).round()),
                           ),
                         ),
                         child: TextField(
@@ -227,7 +231,9 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: 'Enter your password',
                             hintStyle: TextStyle(
                               fontFamily: 'ClashDisplay',
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withAlpha(
+                                (0.5 * 255).round(),
+                              ),
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.all(16),
@@ -236,7 +242,9 @@ class _LoginPageState extends State<LoginPage> {
                                 _obscurePassword
                                     ? Icons.visibility_off
                                     : Icons.visibility,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withAlpha(
+                                  (0.5 * 255).round(),
+                                ),
                               ),
                               onPressed: () {
                                 setState(() {
@@ -249,9 +257,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
@@ -270,11 +278,11 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  
+
                   SizedBox(height: isCompactScreen ? 30.0 : 40.0),
-                  
+
                   // Login Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
@@ -293,7 +301,9 @@ class _LoginPageState extends State<LoginPage> {
                               width: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.black,
+                                ),
                               ),
                             )
                           : Text(
@@ -306,9 +316,9 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                     ),
                   ),
-                  
+
                   SizedBox(height: isCompactScreen ? 24.0 : 32.0),
-                  
+
                   // Sign Up Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -318,7 +328,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                           fontFamily: 'ClashDisplay',
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withAlpha((0.7 * 255).round()),
                         ),
                       ),
                       TextButton(
@@ -342,7 +352,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: bottomPadding),
                 ],
               ),
