@@ -4,6 +4,7 @@ import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/services/alpha_vantage_service.dart';
 import '../core/utils/currency_formatter.dart';
+import 'dart:developer' as developer;
 
 // Market asset data model with real-time prices
 class MarketAsset {
@@ -121,8 +122,9 @@ class _MarketScreenState extends State<MarketScreen> {
           
           // Small delay to avoid rate limiting
           await Future.delayed(const Duration(milliseconds: 600));
-        } catch (e) {
-          print('Error loading stock $symbol: $e');
+        } catch (e,st) {
+          developer.log('Error loading stock $symbol', name: 'MarketScreen', error: e, stackTrace: st);
+
         }
       }
 
@@ -149,8 +151,8 @@ class _MarketScreenState extends State<MarketScreen> {
           
           // Small delay to avoid rate limiting
           await Future.delayed(const Duration(milliseconds: 600));
-        } catch (e) {
-          print('Error loading crypto $symbol: $e');
+        } catch (e,st) {
+          developer.log('Error loading crypto $symbol', name: 'MarketScreen', error: e, stackTrace:st);
         }
       }
 
@@ -174,8 +176,8 @@ class _MarketScreenState extends State<MarketScreen> {
           }
           
           await Future.delayed(const Duration(milliseconds: 600));
-        } catch (e) {
-          print('Error loading mutual fund ${assetDef['symbol']}: $e');
+        } catch (e,st) {
+          developer.log('Error loading mutual fund ${assetDef['symbol']}', name: 'MarketScreen', error: e, stackTrace: st);
           // Add placeholder data for mutual funds if API fails
           assets.add(MarketAsset(
             symbol: assetDef['symbol'] as String,
@@ -250,7 +252,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 style: TextStyle(
                   fontFamily: 'ClashDisplay',
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
               ),
           ],
@@ -285,11 +287,11 @@ class _MarketScreenState extends State<MarketScreen> {
                 hintText: 'Search assets...',
                 hintStyle: TextStyle(
                   fontFamily: 'ClashDisplay',
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
                 filled: true,
                 fillColor: const Color(0xff1a1a1a),
@@ -364,7 +366,7 @@ class _MarketScreenState extends State<MarketScreen> {
           border: Border.all(
             color: isSelected
                 ? const Color(0xFFE5BCE7)
-                : Colors.white.withOpacity(0.1),
+                : Colors.white.withAlpha((0.1 * 255).round()),
           ),
         ),
         child: Text(
@@ -393,7 +395,7 @@ class _MarketScreenState extends State<MarketScreen> {
           color: const Color(0xff1a1a1a),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha((0.1 * 255).round()),
           ),
         ),
         child: Row(
@@ -403,7 +405,7 @@ class _MarketScreenState extends State<MarketScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5BCE7).withOpacity(0.1),
+                color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -441,7 +443,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _getAssetTypeColor(asset.type).withOpacity(0.2),
+                          color: _getAssetTypeColor(asset.type).withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -463,7 +465,7 @@ class _MarketScreenState extends State<MarketScreen> {
                       fontFamily: 'ClashDisplay',
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                   ),
                 ],
@@ -523,7 +525,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   },
                   icon: Icon(
                     isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
-                    color: isInWatchlist ? const Color(0xFFE5BCE7) : Colors.white.withOpacity(0.5),
+                    color: isInWatchlist ? const Color(0xFFE5BCE7) : Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                 );
               },
@@ -729,7 +731,7 @@ class _TradeDialogState extends State<TradeDialog> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: _isBuying ? Colors.white : Colors.white.withOpacity(0.5),
+                            color: _isBuying ? Colors.white : Colors.white.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ),
@@ -753,7 +755,7 @@ class _TradeDialogState extends State<TradeDialog> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: !_isBuying ? Colors.white : Colors.white.withOpacity(0.5),
+                            color: !_isBuying ? Colors.white : Colors.white.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ),
@@ -775,7 +777,7 @@ class _TradeDialogState extends State<TradeDialog> {
                     fontFamily: 'ClashDisplay',
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                 ),
                 Text(
@@ -799,7 +801,7 @@ class _TradeDialogState extends State<TradeDialog> {
                 fontFamily: 'ClashDisplay',
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withAlpha((0.7 * 255).round()),
               ),
             ),
             const SizedBox(height: 8),
@@ -823,7 +825,7 @@ class _TradeDialogState extends State<TradeDialog> {
                 suffixText: 'shares',
                 suffixStyle: TextStyle(
                   fontFamily: 'ClashDisplay',
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
               ),
             ),
@@ -840,7 +842,7 @@ class _TradeDialogState extends State<TradeDialog> {
                     fontFamily: 'ClashDisplay',
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                 ),
                 Text(
@@ -876,7 +878,7 @@ class _TradeDialogState extends State<TradeDialog> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
                           ),
                         ),
                         Text(
