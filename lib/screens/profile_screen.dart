@@ -50,7 +50,7 @@ class ProfileScreen extends StatelessWidget {
                   Icon(
                     Icons.error_outline,
                     size: 60,
-                    color: Colors.red.withOpacity(0.7),
+                    color: Colors.red.withAlpha((0.7 * 255).round()),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -69,7 +69,7 @@ class ProfileScreen extends StatelessWidget {
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -133,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
                         fontFamily: 'ClashDisplay',
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withAlpha((0.6 * 255).round()),
                       ),
                     ),
                     
@@ -166,7 +166,7 @@ class ProfileScreen extends StatelessWidget {
                         fontFamily: 'ClashDisplay',
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withAlpha((0.4 * 255).round()),
                       ),
                     ),
                   ],
@@ -274,7 +274,7 @@ class ProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE5BCE7).withOpacity(0.3),
+            color: const Color(0xFFE5BCE7).withAlpha((0.3 * 255).round()),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -309,7 +309,7 @@ class ProfileScreen extends StatelessWidget {
               fontFamily: 'ClashDisplay',
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withAlpha((0.6 * 255).round()),
             ),
           ),
         ],
@@ -338,7 +338,7 @@ class ProfileScreen extends StatelessWidget {
             color: const Color(0xff1a1a1a),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withAlpha((0.1 * 255).round()),
             ),
           ),
           child: Column(
@@ -367,7 +367,7 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 40,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withAlpha((0.1 * 255).round()),
                   ),
                   Expanded(
                     child: _buildStatItem(
@@ -393,7 +393,7 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 40,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withAlpha((0.1 * 255).round()),
                   ),
                   Expanded(
                     child: _buildStatItem(
@@ -437,7 +437,7 @@ class ProfileScreen extends StatelessWidget {
             fontFamily: 'ClashDisplay',
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withAlpha((0.5 * 255).round()),
           ),
         ),
       ],
@@ -450,7 +450,7 @@ class ProfileScreen extends StatelessWidget {
         color: const Color(0xff1a1a1a),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withAlpha((0.1 * 255).round()),
         ),
       ),
       child: Column(
@@ -461,7 +461,7 @@ class ProfileScreen extends StatelessWidget {
             onTap: () => _showEditProfileDialog(context),
           ),
           Divider(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha((0.1 * 255).round()),
             height: 1,
             indent: 60,
           ),
@@ -471,7 +471,7 @@ class ProfileScreen extends StatelessWidget {
             trailing: Switch(
               value: true,
               onChanged: (value) {
-                // TODO: Implement notification settings
+                // To do: Implement notification settings
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Notification settings coming soon'),
@@ -482,7 +482,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           Divider(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha((0.1 * 255).round()),
             height: 1,
             indent: 60,
           ),
@@ -498,7 +498,7 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
           Divider(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha((0.1 * 255).round()),
             height: 1,
             indent: 60,
           ),
@@ -514,7 +514,7 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
           Divider(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withAlpha((0.1 * 255).round()),
             height: 1,
             indent: 60,
           ),
@@ -539,7 +539,7 @@ class ProfileScreen extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFE5BCE7).withOpacity(0.1),
+          color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
@@ -572,12 +572,12 @@ class ProfileScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () => _showLogoutDialog(context),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.withOpacity(0.1),
+          backgroundColor: Colors.red.withAlpha((0.1 * 255).round()),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: Colors.red.withOpacity(0.3),
+              color: Colors.red.withAlpha((0.3 * 255).round()),
             ),
           ),
         ),
@@ -668,7 +668,7 @@ class ProfileScreen extends StatelessWidget {
             labelText: 'Full Name',
             labelStyle: TextStyle(
               fontFamily: 'ClashDisplay',
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withAlpha((0.5 * 255).round()),
             ),
             filled: true,
             fillColor: const Color(0xff0a0a0a),
@@ -688,7 +688,7 @@ class ProfileScreen extends StatelessWidget {
               'Cancel',
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withAlpha((0.5 * 255).round()),
               ),
             ),
           ),
@@ -753,7 +753,7 @@ class ProfileScreen extends StatelessWidget {
               'Cancel',
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withAlpha((0.5 * 255).round()),
               ),
             ),
           ),
@@ -831,7 +831,7 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withAlpha((0.5 * 255).round()),
               ),
             ),
             const SizedBox(height: 16),
@@ -840,7 +840,7 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withAlpha((0.7 * 255).round()),
               ),
             ),
             const SizedBox(height: 16),
@@ -849,7 +849,7 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withAlpha((0.4 * 255).round()),
               ),
             ),
           ],

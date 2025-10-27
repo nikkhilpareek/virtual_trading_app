@@ -137,7 +137,7 @@ class _SlidingButtonState extends State<SlidingButton>
                           padding: const EdgeInsets.only(right: 4.0),
                           child: Icon(
                             Icons.chevron_right,
-                            color: widget.textColor.withOpacity(0.3),
+                            color: widget.textColor.withAlpha((0.3 * 255).round()),
                             size: 18,
                           ),
                         ),
@@ -166,7 +166,7 @@ class _SlidingButtonState extends State<SlidingButton>
                           borderRadius: BorderRadius.circular(widget.borderRadius - 4),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withAlpha((0.2 * 255).round()),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),

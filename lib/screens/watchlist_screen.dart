@@ -98,7 +98,7 @@ class WatchlistScreen extends StatelessWidget {
                   Icon(
                     Icons.error_outline,
                     size: 60,
-                    color: Colors.red.withOpacity(0.7),
+                    color: Colors.red.withAlpha((0.7 * 255).round()),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -117,7 +117,7 @@ class WatchlistScreen extends StatelessWidget {
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -168,7 +168,7 @@ class WatchlistScreen extends StatelessWidget {
                 Icon(
                   Icons.bookmark_border,
                   size: 80,
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withAlpha((0.3 * 255).round()),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -187,7 +187,7 @@ class WatchlistScreen extends StatelessWidget {
                     fontFamily: 'ClashDisplay',
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -236,7 +236,7 @@ class WatchlistScreen extends StatelessWidget {
         color: const Color(0xff1a1a1a),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withAlpha((0.1 * 255).round()),
         ),
       ),
       child: Row(
@@ -246,7 +246,7 @@ class WatchlistScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _getAssetTypeColor(item.assetType).withOpacity(0.1),
+              color: _getAssetTypeColor(item.assetType).withAlpha((0.1 * 255).round()),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -284,7 +284,7 @@ class WatchlistScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _getAssetTypeColor(item.assetType).withOpacity(0.2),
+                        color: _getAssetTypeColor(item.assetType).withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -306,7 +306,7 @@ class WatchlistScreen extends StatelessWidget {
                     fontFamily: 'ClashDisplay',
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -436,7 +436,7 @@ class WatchlistScreen extends StatelessWidget {
           'Do you want to remove ${item.assetSymbol} from your watchlist?',
           style: TextStyle(
             fontFamily: 'ClashDisplay',
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withAlpha((0.7 * 255).round()),
           ),
         ),
         actions: [
@@ -446,7 +446,7 @@ class WatchlistScreen extends StatelessWidget {
               'Cancel',
               style: TextStyle(
                 fontFamily: 'ClashDisplay',
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withAlpha((0.5 * 255).round()),
               ),
             ),
           ),
