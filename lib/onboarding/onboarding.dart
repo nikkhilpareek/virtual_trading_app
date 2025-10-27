@@ -80,14 +80,14 @@ class Onboarding extends StatelessWidget {
                     fontFamily: 'ClashDisplay',
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withAlpha((0.7 * 255).round()),
                     height: 1.5,
                   ),
                 ),
               ),
               const Spacer(),
               // Illustration
-              Container(
+              SizedBox(
                 height: 300,
                 width: 250,
                 child: Image.asset(

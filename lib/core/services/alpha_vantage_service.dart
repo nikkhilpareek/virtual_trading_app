@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:developer' as developer;
 
 /// Service class for Alpha Vantage API integration
 /// Fetches real-time stock and cryptocurrency prices
@@ -78,7 +79,12 @@ class AlphaVantageService {
         throw Exception('Failed to fetch quote: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching stock quote for $symbol: $e');
+      developer.log(
+      'Error fetching stock quote for $symbol',
+        name: 'AlphaVantageService',
+        error: e,
+        stackTrace: e is Error ? e.stackTrace : null,
+      );
       return null;
     }
   }
@@ -153,7 +159,12 @@ class AlphaVantageService {
         throw Exception('Failed to fetch crypto quote: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching crypto quote for $symbol: $e');
+      developer.log(
+        'Error fetching crypto quote for $symbol',
+        name: 'AlphaVantageService',
+        error: e,
+        stackTrace: e is Error ? e.stackTrace : null,
+      );
       return null;
     }
   }

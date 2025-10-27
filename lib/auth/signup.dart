@@ -182,7 +182,7 @@ class _SignupPageState extends State<SignupPage> {
                       fontFamily: 'ClashDisplay',
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withAlpha((0.7 * 255).round()),
                       height: 1.5,
                     ),
                   ),
@@ -242,7 +242,7 @@ class _SignupPageState extends State<SignupPage> {
                   SizedBox(height: sectionSpacing),
                   
                   // Sign Up Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
@@ -286,7 +286,7 @@ class _SignupPageState extends State<SignupPage> {
                         style: TextStyle(
                           fontFamily: 'ClashDisplay',
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withAlpha((0.7 * 255).round()),
                         ),
                       ),
                       TextButton(
@@ -343,7 +343,7 @@ class _SignupPageState extends State<SignupPage> {
             color: const Color(0xff1a1a1a),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withAlpha((0.1* 255).round()),
             ),
           ),
           child: TextField(
@@ -359,7 +359,7 @@ class _SignupPageState extends State<SignupPage> {
               hintText: hintText,
               hintStyle: TextStyle(
                 fontFamily: 'ClashDisplay',
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withAlpha((0.5 * 255).round())
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
@@ -369,7 +369,7 @@ class _SignupPageState extends State<SignupPage> {
                         obscureText
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withAlpha((0.5 * 255).round())
                       ),
                       onPressed: onToggleObscure,
                     )

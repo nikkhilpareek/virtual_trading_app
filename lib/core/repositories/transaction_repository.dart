@@ -3,6 +3,7 @@ import '../models/models.dart';
 import 'user_repository.dart';
 import 'holdings_repository.dart';
 import '../utils/currency_formatter.dart';
+import 'dart:developer' as developer;
 
 /// Transaction Repository
 /// Handles all transaction operations and trading logic with Supabase
@@ -33,8 +34,13 @@ class TransactionRepository {
       return (response as List)
           .map((json) => Transaction.fromJson(json))
           .toList();
-    } catch (e) {
-      print('Error fetching transactions: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error fetching transactions',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -73,8 +79,13 @@ class TransactionRepository {
       return (response as List)
           .map((json) => Transaction.fromJson(json))
           .toList();
-    } catch (e) {
-      print('Error fetching asset transactions: $e');
+    } catch (e, st) {
+      developer.log(
+        "Error fetching asset transactions",
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -94,8 +105,13 @@ class TransactionRepository {
       return (response as List)
           .map((json) => Transaction.fromJson(json))
           .toList();
-    } catch (e) {
-      print('Error fetching transactions by type: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error fetching transactions by type',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -116,11 +132,15 @@ class TransactionRepository {
       // Check if user has sufficient balance
       final hasFunds = await _userRepository.hasSufficientBalance(totalAmount);
       if (!hasFunds) {
-        throw Exception('Insufficient balance. Need ${CurrencyFormatter.formatINR(totalAmount)}');
+        throw Exception(
+          'Insufficient balance. Need ${CurrencyFormatter.formatINR(totalAmount)}',
+        );
       }
 
       // Deduct amount from balance
-      final balanceUpdated = await _userRepository.deductFromBalance(totalAmount);
+      final balanceUpdated = await _userRepository.deductFromBalance(
+        totalAmount,
+      );
       if (!balanceUpdated) {
         throw Exception('Failed to update balance');
       }
@@ -155,8 +175,13 @@ class TransactionRepository {
           .single();
 
       return Transaction.fromJson(response);
-    } catch (e) {
-      print('Error executing buy order: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error executing buy order',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -180,7 +205,9 @@ class TransactionRepository {
 
       // Check if user has sufficient quantity
       if (holding.quantity < quantity) {
-        throw Exception('Insufficient quantity. You own ${holding.quantity} units');
+        throw Exception(
+          'Insufficient quantity. You own ${holding.quantity} units',
+        );
       }
 
       final totalAmount = quantity * pricePerUnit;
@@ -219,8 +246,13 @@ class TransactionRepository {
           .single();
 
       return Transaction.fromJson(response);
-    } catch (e) {
-      print('Error executing sell order: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error executing sell order',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -229,9 +261,17 @@ class TransactionRepository {
   Future<double> getTotalSpent() async {
     try {
       final buyTransactions = await getTransactionsByType(TransactionType.buy);
-      return buyTransactions.fold<double>(0.0, (sum, tx) => sum + tx.totalAmount);
-    } catch (e) {
-      print('Error calculating total spent: $e');
+      return buyTransactions.fold<double>(
+        0.0,
+        (sum, tx) => sum + tx.totalAmount,
+      );
+    } catch (e, st) {
+      developer.log(
+        'Error calculating total spent',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -239,10 +279,20 @@ class TransactionRepository {
   /// Get total amount received (all sell transactions)
   Future<double> getTotalReceived() async {
     try {
-      final sellTransactions = await getTransactionsByType(TransactionType.sell);
-      return sellTransactions.fold<double>(0.0, (sum, tx) => sum + tx.totalAmount);
-    } catch (e) {
-      print('Error calculating total received: $e');
+      final sellTransactions = await getTransactionsByType(
+        TransactionType.sell,
+      );
+      return sellTransactions.fold<double>(
+        0.0,
+        (sum, tx) => sum + tx.totalAmount,
+      );
+    } catch (e, st) {
+      developer.log(
+        'Error calculating total received',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -252,8 +302,13 @@ class TransactionRepository {
     try {
       final transactions = await getTransactions();
       return transactions.length;
-    } catch (e) {
-      print('Error getting transaction count: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error getting transaction count',
+        name: 'TransactionRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0;
     }
   }

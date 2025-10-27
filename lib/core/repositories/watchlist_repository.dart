@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
+import 'dart:developer' as developer;
 
 /// Watchlist Repository
 /// Handles all watchlist operations with Supabase
@@ -23,8 +24,14 @@ class WatchlistRepository {
       return (response as List)
           .map((json) => WatchlistItem.fromJson(json))
           .toList();
-    } catch (e) {
-      print('Error fetching watchlist: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error fetching watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
+
       return [];
     }
   }
@@ -60,8 +67,13 @@ class WatchlistRepository {
           .maybeSingle();
 
       return response != null;
-    } catch (e) {
-      print('Error checking watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error checking watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -93,8 +105,13 @@ class WatchlistRepository {
           .single();
 
       return WatchlistItem.fromJson(response);
-    } catch (e) {
-      print('Error adding to watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error adding to watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -111,8 +128,13 @@ class WatchlistRepository {
           .eq('asset_symbol', assetSymbol);
 
       return true;
-    } catch (e) {
-      print('Error removing from watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error removing from watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -136,8 +158,13 @@ class WatchlistRepository {
         );
         return item != null;
       }
-    } catch (e) {
-      print('Error toggling watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error toggling watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -147,8 +174,13 @@ class WatchlistRepository {
     try {
       final watchlist = await getWatchlist();
       return watchlist.where((item) => item.assetType == type).toList();
-    } catch (e) {
-      print('Error filtering watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error filtering watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -158,8 +190,13 @@ class WatchlistRepository {
     try {
       final watchlist = await getWatchlist();
       return watchlist.length;
-    } catch (e) {
-      print('Error getting watchlist count: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error getting watchlist count',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0;
     }
   }
@@ -169,14 +206,16 @@ class WatchlistRepository {
     try {
       if (currentUserId == null) throw Exception('User not authenticated');
 
-      await _supabase
-          .from('watchlist')
-          .delete()
-          .eq('user_id', currentUserId!);
+      await _supabase.from('watchlist').delete().eq('user_id', currentUserId!);
 
       return true;
-    } catch (e) {
-      print('Error clearing watchlist: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error clearing watchlist',
+        name: 'WatchListRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
