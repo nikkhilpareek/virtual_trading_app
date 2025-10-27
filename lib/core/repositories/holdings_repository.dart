@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
+import 'dart:developer' as developer;
 
 /// Holdings Repository
 /// Handles all user holdings (portfolio) operations with Supabase
@@ -23,8 +24,8 @@ class HoldingsRepository {
       return (response as List)
           .map((json) => Holding.fromJson(json))
           .toList();
-    } catch (e) {
-      print('Error fetching holdings: $e');
+    } catch (e,st) {
+      developer.log('Error fetching holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
       return [];
     }
   }
@@ -61,8 +62,8 @@ class HoldingsRepository {
 
       if (response == null) return null;
       return Holding.fromJson(response);
-    } catch (e) {
-      print('Error fetching holding: $e');
+    } catch (e,st) {
+      developer.log('Error fetching holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
       return null;
     }
   }
@@ -127,8 +128,8 @@ class HoldingsRepository {
 
         return Holding.fromJson(response);
       }
-    } catch (e) {
-      print('Error adding/updating holding: $e');
+    } catch (e,st) {
+      developer.log('Error adding/updating holding', name: 'HoldingsRepository', error: e, stackTrace: st);
       return null;
     }
   }
@@ -177,8 +178,8 @@ class HoldingsRepository {
 
         return Holding.fromJson(response);
       }
-    } catch (e) {
-      print('Error reducing holding: $e');
+    } catch (e,st) {
+      developer.log('Error reducing holding', name: 'HoldingsRepository', error: e, stackTrace: st);
       return null;
     }
   }
@@ -209,8 +210,9 @@ class HoldingsRepository {
           .single();
 
       return Holding.fromJson(response);
-    } catch (e) {
-      print('Error updating price: $e');
+    } catch (e,st) {
+      developer.log('Error updating price', name: 'HoldingsRepository', error: e, stackTrace: st);
+
       return null;
     }
   }
@@ -227,8 +229,8 @@ class HoldingsRepository {
           .eq('asset_symbol', assetSymbol);
 
       return true;
-    } catch (e) {
-      print('Error deleting holding: $e');
+    } catch (e,st) {
+      developer.log('Error deleting holding', name: 'HoldingsRepository', error: e, stackTrace: st);
       return false;
     }
   }
@@ -238,8 +240,8 @@ class HoldingsRepository {
     try {
       final holdings = await getHoldings();
       return holdings.fold<double>(0.0, (sum, holding) => sum + holding.currentValue);
-    } catch (e) {
-      print('Error calculating portfolio value: $e');
+    } catch (e,st) {
+      developer.log('Error calculating portfolio value', name: 'HoldingsRepository', error: e, stackTrace: st);
       return 0.0;
     }
   }
@@ -249,8 +251,8 @@ class HoldingsRepository {
     try {
       final holdings = await getHoldings();
       return holdings.fold<double>(0.0, (sum, holding) => sum + holding.totalInvested);
-    } catch (e) {
-      print('Error calculating total invested: $e');
+    } catch (e,st) {
+      developer.log('Error calculating total invested', name: 'HoldingsRepository', error: e, stackTrace: st);
       return 0.0;
     }
   }
@@ -260,8 +262,8 @@ class HoldingsRepository {
     try {
       final holdings = await getHoldings();
       return holdings.fold<double>(0.0, (sum, holding) => sum + holding.profitLoss);
-    } catch (e) {
-      print('Error calculating total P&L: $e');
+    } catch (e,st) {
+      developer.log('Error calculating total P&L', name: 'HoldingsRepository', error: e, stackTrace: st);
       return 0.0;
     }
   }
@@ -271,8 +273,8 @@ class HoldingsRepository {
     try {
       final holdings = await getHoldings();
       return holdings.where((h) => h.assetType == type).toList();
-    } catch (e) {
-      print('Error filtering holdings: $e');
+    } catch (e,st) {
+      developer.log('Error filtering holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
       return [];
     }
   }

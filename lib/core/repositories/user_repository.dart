@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
+import 'dart:developer' as developer;
 
 /// User Repository
 /// Handles all user profile related operations with Supabase
@@ -26,8 +27,14 @@ class UserRepository {
           .single();
 
       return UserProfile.fromJson(response);
-    } catch (e) {
-      print('Error fetching user profile: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error fetching user profile',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
+
       return null;
     }
   }
@@ -72,8 +79,13 @@ class UserRepository {
           .single();
 
       return UserProfile.fromJson(response);
-    } catch (e) {
-      print('Error updating profile: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error updating profile',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -92,8 +104,13 @@ class UserRepository {
           .eq('id', currentUserId!);
 
       return true;
-    } catch (e) {
-      print('Error updating balance: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error updating balance',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -106,8 +123,13 @@ class UserRepository {
 
       final newBalance = profile.stonkBalance + amount;
       return await updateBalance(newBalance);
-    } catch (e) {
-      print('Error adding to balance: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error adding to balance',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -124,8 +146,13 @@ class UserRepository {
 
       final newBalance = profile.stonkBalance - amount;
       return await updateBalance(newBalance);
-    } catch (e) {
-      print('Error deducting from balance: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error deducting from balance',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -136,12 +163,11 @@ class UserRepository {
       if (currentUserId == null) throw Exception('User not authenticated');
 
       // Generate unique file name
-      final fileName = '$currentUserId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final fileName =
+          '$currentUserId/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       // Upload to Supabase Storage
-      await _supabase.storage
-          .from('avatars')
-          .upload(fileName, File(filePath));
+      await _supabase.storage.from('avatars').upload(fileName, File(filePath));
 
       // Get public URL
       final publicUrl = _supabase.storage
@@ -152,8 +178,13 @@ class UserRepository {
       await updateProfile(avatarUrl: publicUrl);
 
       return publicUrl;
-    } catch (e) {
-      print('Error uploading avatar: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error uploading avatar',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -168,16 +199,19 @@ class UserRepository {
       final path = uri.pathSegments.last;
 
       // Delete from storage
-      await _supabase.storage
-          .from('avatars')
-          .remove(['$currentUserId/$path']);
+      await _supabase.storage.from('avatars').remove(['$currentUserId/$path']);
 
       // Update profile to remove avatar URL
       await updateProfile(avatarUrl: null);
 
       return true;
-    } catch (e) {
-      print('Error deleting avatar: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error deleting avatar',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -187,8 +221,13 @@ class UserRepository {
     try {
       final profile = await getUserProfile();
       return profile?.stonkBalance;
-    } catch (e) {
-      print('Error getting balance: $e');
+    } catch (e,st) {
+      developer.log(
+        'Error getting balance',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -199,8 +238,13 @@ class UserRepository {
       final balance = await getCurrentBalance();
       if (balance == null) return false;
       return balance >= amount;
-    } catch (e) {
-      print('Error checking balance: $e');
+    } catch (e,st) {  
+      developer.log(
+        'Error checking balance',
+        name: 'UserRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }

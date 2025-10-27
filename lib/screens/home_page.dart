@@ -7,6 +7,7 @@ import 'market_screen.dart';
 import 'watchlist_screen.dart';
 import 'profile_screen.dart';
 import 'dart:ui';
+import 'dart:developer' as developer;
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -82,21 +83,21 @@ class _HomePageState extends State<HomePage> {
               // subtle frosted glass gradient + tint
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.02),
-                  Colors.white.withOpacity(0.01),
+                  Colors.white.withAlpha((0.02 * 255).round()),
+                  Colors.white.withAlpha((0.01 * 255).round()),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              color: Colors.white.withOpacity(0.02),
+              color: Colors.white.withAlpha((0.02 * 255).round()),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withAlpha((0.06 * 255).round()),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.45),
+                  color: Colors.black.withAlpha((0.45 * 255).round()),
                   blurRadius: 18,
                   offset: const Offset(0, 10),
                 ),
@@ -111,7 +112,7 @@ class _HomePageState extends State<HomePage> {
                     : items[i]['icon'] as IconData;
                 final color = isActive
                     ? const Color(0xFFE5BCE7)
-                    : Colors.white.withOpacity(0.7);
+                    : Colors.white.withAlpha((0.7 * 255).round());
 
                 return Expanded(
                   child: GestureDetector(
@@ -128,22 +129,28 @@ class _HomePageState extends State<HomePage> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isActive
-                                ? color.withOpacity(0.12)
+                                ? color.withAlpha((0.12 * 255).round())
                                 : Colors.transparent,
                             border: isActive
                                 ? Border.all(
-                                    color: color.withOpacity(0.18),
+                                    color: color.withAlpha(
+                                      (0.18 * 255).round(),
+                                    ),
                                     width: 1.2,
                                   )
                                 : Border.all(
-                                    color: Colors.white.withOpacity(0.02),
+                                    color: Colors.white.withAlpha(
+                                      (0.02 * 255).round(),
+                                    ),
                                     width: 1,
                                   ),
                             // tiny inner glow to mimic liquid depth
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: color.withOpacity(0.08),
+                                      color: color.withAlpha(
+                                        (0.08 * 255).round(),
+                                      ),
                                       blurRadius: 12,
                                       spreadRadius: 1,
                                       offset: const Offset(0, 6),
@@ -341,7 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: IconButton(
                         onPressed: () {
                           // Handle notification tap
-                          print('Notification tapped');
+                          developer.log('Notification tapped');
                         },
                         icon: const Icon(
                           Icons.notifications,
@@ -416,7 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color(0xff1a1a1a),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withAlpha((0.1 * 255).round()),
                           width: 1,
                         ),
                       ),
@@ -442,7 +449,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color(0xff1a1a1a),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withAlpha((0.1 * 255).round()),
                           width: 1,
                         ),
                       ),
@@ -463,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: ListView.separated(
                               itemCount: recentTransactions.length,
                               separatorBuilder: (context, index) => Divider(
-                                color: Colors.white.withOpacity(0.1),
+                                color: Colors.white.withAlpha((0.1 * 255).round()),
                                 height: 24,
                               ),
                               itemBuilder: (context, index) {
@@ -481,7 +488,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       decoration: BoxDecoration(
                                         color:
                                             (isBuy ? Colors.green : Colors.red)
-                                                .withOpacity(0.1),
+                                                .withAlpha((0.1 * 255).round()),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
@@ -518,9 +525,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               fontFamily: 'ClashDisplay',
                                               fontSize: 12,
                                               fontWeight: FontWeight.w400,
-                                              color: Colors.white.withOpacity(
-                                                0.5,
-                                              ),
+                                              color: Colors.white.withAlpha((0.5 * 255).round()),
                                             ),
                                           ),
                                         ],
@@ -550,9 +555,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 12,
                                             fontWeight: FontWeight.w400,
-                                            color: Colors.white.withOpacity(
-                                              0.5,
-                                            ),
+                                            color: Colors.white.withAlpha((0.5 * 255).round()),
                                           ),
                                         ),
                                       ],
@@ -575,7 +578,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: const Color(0xff1a1a1a),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withAlpha((0.1 * 255).round()),
                         width: 1,
                       ),
                     ),
@@ -600,7 +603,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Icon(
                                   Icons.trending_up,
                                   size: 60,
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withAlpha((0.3* 255).round()),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
@@ -609,7 +612,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontFamily: 'ClashDisplay',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
-                                    color: Colors.white.withOpacity(0.5),
+                                    color: Colors.white.withAlpha((0.5 * 255).round()),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -619,7 +622,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontFamily: 'ClashDisplay',
                                     fontSize: 14,
                                     fontWeight: FontWeight.w400,
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.white.withAlpha((0.3 * 255).round()),
                                   ),
                                 ),
                               ],
@@ -671,7 +674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: const Color(0xff1a1a1a),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withAlpha((0.1 * 255).round()),
                   width: 1,
                 ),
               ),
@@ -688,14 +691,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fontFamily: 'ClashDisplay',
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withAlpha((0.7 * 255).round()),
                         ),
                       ),
                       Container(
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5BCE7).withOpacity(0.2),
+                          color: const Color(0xFFE5BCE7).withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
@@ -736,7 +739,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withAlpha((0.5 * 255).round()),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -762,7 +765,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withAlpha((0.5 * 255).round()),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -882,9 +885,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withAlpha((0.11 * 255).round()),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withAlpha((0.3 * 255).round()), width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
