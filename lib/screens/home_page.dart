@@ -19,7 +19,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
+  // Default to the Dashboard screen (index 2 in the current _screens ordering)
+  int _currentIndex = 2;
   late final List<Widget> _screens;
   late final PageController _pageController;
 
