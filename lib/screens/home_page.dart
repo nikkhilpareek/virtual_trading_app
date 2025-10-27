@@ -6,8 +6,8 @@ import '../core/utils/currency_formatter.dart';
 import 'market_screen.dart';
 import 'watchlist_screen.dart';
 import 'profile_screen.dart';
+import 'notifications_screen.dart';
 import 'dart:ui';
-import 'dart:developer' as developer;
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -19,7 +19,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Default to the Dashboard screen (index 2 in the current _screens ordering)
   int _currentIndex = 2;
   late final List<Widget> _screens;
   late final PageController _pageController;
@@ -27,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // New desired order: Watchlist, Market, Dashboard, Learn, Crypto
+
     _screens = [
       const WatchlistScreen(),
       const MarketScreen(),
@@ -60,7 +59,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBottomNavigationBar() {
-    // Order must match _screens: Watchlist, Market, Dashboard, Learn, Crypto
     final items = [
       {
         'icon': Icons.bookmark_border,
@@ -376,13 +374,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 BlocBuilder<UserBloc, UserState>(
                   builder: (context, state) {
                     String displayName = widget.userName;
-                    if (state is UserLoaded)
+                    if (state is UserLoaded) {
                       displayName = state.profile.displayName;
+                    }
                     return RichText(
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: 'Hello, ',
+                            text: 'Hello, \n',
                             style: TextStyle(
                               fontFamily: 'ClashDisplay',
                               fontSize: 24,
@@ -415,7 +414,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
-                        onPressed: () => developer.log('Notification tapped'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen(),
+                          ),
+                        ),
                         icon: const Icon(
                           Icons.notifications,
                           color: Colors.white,
@@ -633,53 +637,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 1,
                       ),
                     ),
-                    child: Container(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Recent Activities",
-                              style: TextStyle(
-                                fontFamily: 'ClashDisplay',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Recent Activities",
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Icon(
+                            Icons.trending_up,
+                            size: 60,
+                            color: Colors.white.withAlpha((0.3 * 255).round()),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No recent activity yet',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withAlpha(
+                                (0.5 * 255).round(),
                               ),
                             ),
-                            Icon(
-                              Icons.trending_up,
-                              size: 60,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Start trading to see your activity',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
                               color: Colors.white.withAlpha(
                                 (0.3 * 255).round(),
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No recent activity yet',
-                              style: TextStyle(
-                                fontFamily: 'ClashDisplay',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white.withAlpha(
-                                  (0.5 * 255).round(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Start trading to see your activity',
-                              style: TextStyle(
-                                fontFamily: 'ClashDisplay',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white.withAlpha(
-                                  (0.3 * 255).round(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   );
