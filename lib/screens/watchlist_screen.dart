@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:virtual_trading_app/screens/market_screen.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
@@ -84,12 +85,10 @@ class WatchlistScreen extends StatelessWidget {
         builder: (context, state) {
           if (state is WatchlistLoading) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFE5BCE7),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
             );
           }
-          
+
           if (state is WatchlistError) {
             return Center(
               child: Column(
@@ -141,7 +140,7 @@ class WatchlistScreen extends StatelessWidget {
               ),
             );
           }
-          
+
           if (state is WatchlistLoaded && state.filteredItems.isNotEmpty) {
             return RefreshIndicator(
               color: const Color(0xFFE5BCE7),
@@ -151,7 +150,8 @@ class WatchlistScreen extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.all(20),
                 itemCount: state.filteredItems.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = state.filteredItems[index];
                   return _buildWatchlistCard(context, item);
@@ -159,7 +159,7 @@ class WatchlistScreen extends StatelessWidget {
               ),
             );
           }
-          
+
           // Empty state
           return Center(
             child: Column(
@@ -193,8 +193,11 @@ class WatchlistScreen extends StatelessWidget {
                 const SizedBox(height: 30),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to market tab
-                    DefaultTabController.of(context).animateTo(1);
+                    // Navigate to the Market screen
+                    // Remove DefaultTabController call (not used here) and push the MarketScreen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MarketScreen()),
+                    );
                   },
                   icon: const Icon(Icons.add, color: Colors.black),
                   label: const Text(
@@ -229,15 +232,13 @@ class WatchlistScreen extends StatelessWidget {
     final mockPrice = _getMockPrice(item.assetSymbol);
     final mockChange = _getMockChange(item.assetSymbol);
     final isPositive = mockChange >= 0;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xff1a1a1a),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withAlpha((0.1 * 255).round()),
-        ),
+        border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
       ),
       child: Row(
         children: [
@@ -246,7 +247,9 @@ class WatchlistScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _getAssetTypeColor(item.assetType).withAlpha((0.1 * 255).round()),
+              color: _getAssetTypeColor(
+                item.assetType,
+              ).withAlpha((0.1 * 255).round()),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -261,9 +264,9 @@ class WatchlistScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // Asset details
           Expanded(
             child: Column(
@@ -282,9 +285,14 @@ class WatchlistScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getAssetTypeColor(item.assetType).withAlpha((0.2 * 255).round()),
+                        color: _getAssetTypeColor(
+                          item.assetType,
+                        ).withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -314,7 +322,7 @@ class WatchlistScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Price and change
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -350,19 +358,16 @@ class WatchlistScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // Remove button
           IconButton(
             onPressed: () {
               // Show confirmation dialog
               _showRemoveDialog(context, item);
             },
-            icon: Icon(
-              Icons.bookmark,
-              color: const Color(0xFFE5BCE7),
-            ),
+            icon: Icon(Icons.bookmark, color: const Color(0xFFE5BCE7)),
           ),
         ],
       ),
@@ -421,9 +426,7 @@ class WatchlistScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Remove from Watchlist?',
           style: TextStyle(
