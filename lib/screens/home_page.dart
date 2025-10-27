@@ -6,10 +6,11 @@ import '../core/utils/currency_formatter.dart';
 import 'market_screen.dart';
 import 'watchlist_screen.dart';
 import 'profile_screen.dart';
+import 'dart:ui';
 
 class HomePage extends StatefulWidget {
   final String userName;
-  
+
   const HomePage({
     super.key,
     this.userName = 'Nikhil', // Default name, can be passed from login
@@ -47,71 +48,144 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0a0a0a),
-        border: Border(
-          top: BorderSide(
-            color: Colors.white.withOpacity(0.1),
-            width: 1,
+    return SafeArea(
+      minimum: const EdgeInsets.only(left: 16, right: 16,bottom:12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.06),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                )
+              ],
+            ),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index)=>setState(()=>_currentIndex = index),
+              backgroundColor: Colors.transparent,
+              selectedItemColor: const Color(0xFFE5BCE7),
+              unselectedItemColor: Colors.white.withOpacity(0.6),
+              type: BottomNavigationBarType.fixed,
+              elevation: 0,
+              showUnselectedLabels: true,
+              selectedLabelStyle: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bookmark_border),
+                  activeIcon: Icon(Icons.bookmark),
+                  label: 'Watchlist',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.trending_up),
+                  activeIcon: Icon(Icons.trending_up),
+                  label: 'Market',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.school_outlined),
+                  activeIcon: Icon(Icons.school),
+                  label: 'Learn',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.currency_bitcoin),
+                  activeIcon: Icon(Icons.currency_bitcoin),
+                  label: 'Crypto',
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.transparent,
-        selectedItemColor: const Color(0xFFE5BCE7),
-        unselectedItemColor: Colors.white.withOpacity(0.5),
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        selectedLabelStyle: const TextStyle(
-          fontFamily: 'ClashDisplay',
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'ClashDisplay',
-          fontWeight: FontWeight.w400,
-          fontSize: 12,
-        ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up),
-            activeIcon: Icon(Icons.trending_up),
-            label: 'Market',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school_outlined),
-            activeIcon: Icon(Icons.school),
-            label: 'Learn',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Watchlist',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.currency_bitcoin),
-            activeIcon: Icon(Icons.currency_bitcoin),
-            label: 'Crypto',
-          ),
-        ],
       ),
     );
   }
 
+  // Widget _buildBottomNavigationBar() {
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       color: const Color(0xFF0a0a0a),
+  //       border: Border(
+  //         top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+  //       ),
+  //     ),
+  //     child: BottomNavigationBar(
+  //       currentIndex: _currentIndex,
+  //       onTap: (index) => setState(() => _currentIndex = index),
+  //       backgroundColor: Colors.transparent,
+  //       selectedItemColor: const Color(0xFFE5BCE7),
+  //       unselectedItemColor: Colors.white.withOpacity(0.5),
+  //       type: BottomNavigationBarType.fixed,
+  //       elevation: 0,
+  //       selectedLabelStyle: const TextStyle(
+  //         fontFamily: 'ClashDisplay',
+  //         fontWeight: FontWeight.w500,
+  //         fontSize: 12,
+  //       ),
+  //       unselectedLabelStyle: const TextStyle(
+  //         fontFamily: 'ClashDisplay',
+  //         fontWeight: FontWeight.w400,
+  //         fontSize: 12,
+  //       ),
+  //       items: const [
+  //         BottomNavigationBarItem(
+  //           icon: Icon(Icons.home_outlined),
+  //           activeIcon: Icon(Icons.home),
+  //           label: 'Home',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Icon(Icons.trending_up),
+  //           activeIcon: Icon(Icons.trending_up),
+  //           label: 'Market',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Icon(Icons.school_outlined),
+  //           activeIcon: Icon(Icons.school),
+  //           label: 'Learn',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Icon(Icons.bookmark_border),
+  //           activeIcon: Icon(Icons.bookmark),
+  //           label: 'Watchlist',
+  //         ),
+  //         BottomNavigationBarItem(
+  //           icon: Icon(Icons.currency_bitcoin),
+  //           activeIcon: Icon(Icons.currency_bitcoin),
+  //           label: 'Crypto',
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
 
 // Dashboard Screen (Home Tab)
 class DashboardScreen extends StatefulWidget {
   final String userName;
-  
+
   const DashboardScreen({super.key, required this.userName});
 
   @override
@@ -125,7 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Load transactions when dashboard loads
     context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,7 +208,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         preferredSize: const Size.fromHeight(80),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 12.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -145,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (state is UserLoaded) {
                       displayName = state.profile.displayName;
                     }
-                    
+
                     return RichText(
                       text: TextSpan(
                         children: [
@@ -172,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                 ),
-                
+
                 // Right side - Notification bell and profile icons
                 Row(
                   children: [
@@ -197,9 +274,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: EdgeInsets.zero,
                       ),
                     ),
-                    
+
                     const SizedBox(width: 12),
-                    
+
                     // Profile Icon
                     Container(
                       width: 40,
@@ -239,17 +316,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            
+
             // Portfolio Balance Card
             _buildBalanceCard(),
-            
+
             const SizedBox(height: 30),
-            
+
             // Quick Actions
             _buildQuickActions(context),
-            
+
             const SizedBox(height: 20),
-            
+
             // Recent Activity from TransactionBloc
             Expanded(
               child: BlocBuilder<TransactionBloc, TransactionState>(
@@ -273,11 +350,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     );
                   }
-                  
-                  if (state is TransactionLoaded && state.transactions.isNotEmpty) {
+
+                  if (state is TransactionLoaded &&
+                      state.transactions.isNotEmpty) {
                     // Show only the last 5 transactions
-                    final recentTransactions = state.transactions.take(5).toList();
-                    
+                    final recentTransactions = state.transactions
+                        .take(5)
+                        .toList();
+
                     return Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -311,8 +391,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               itemBuilder: (context, index) {
                                 final transaction = recentTransactions[index];
-                                final isBuy = transaction.transactionType == TransactionType.buy;
-                                
+                                final isBuy =
+                                    transaction.transactionType ==
+                                    TransactionType.buy;
+
                                 return Row(
                                   children: [
                                     // Icon
@@ -320,21 +402,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: (isBuy ? Colors.green : Colors.red).withOpacity(0.1),
+                                        color:
+                                            (isBuy ? Colors.green : Colors.red)
+                                                .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
-                                        isBuy ? Icons.arrow_downward : Icons.arrow_upward,
-                                        color: isBuy ? Colors.green : Colors.red,
+                                        isBuy
+                                            ? Icons.arrow_downward
+                                            : Icons.arrow_upward,
+                                        color: isBuy
+                                            ? Colors.green
+                                            : Colors.red,
                                         size: 20,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    
+
                                     // Asset details
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             transaction.assetSymbol,
@@ -352,16 +441,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               fontFamily: 'ClashDisplay',
                                               fontSize: 12,
                                               fontWeight: FontWeight.w400,
-                                              color: Colors.white.withOpacity(0.5),
+                                              color: Colors.white.withOpacity(
+                                                0.5,
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    
+
                                     // Amount
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           '${isBuy ? '-' : '+'}${CurrencyFormatter.formatINR(transaction.totalAmount).replaceAll('₹', '')}',
@@ -369,7 +461,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: isBuy ? Colors.red : Colors.green,
+                                            color: isBuy
+                                                ? Colors.red
+                                                : Colors.green,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -379,7 +473,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 12,
                                             fontWeight: FontWeight.w400,
-                                            color: Colors.white.withOpacity(0.5),
+                                            color: Colors.white.withOpacity(
+                                              0.5,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -393,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     );
                   }
-                  
+
                   // Empty state
                   return Container(
                     width: double.infinity,
@@ -475,22 +571,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             double portfolioValue = 0.0;
             double profitLoss = 0.0;
             double profitLossPercentage = 0.0;
-            
+
             // Get user balance
             if (userState is UserLoaded) {
               stonkBalance = userState.profile.stonkBalance;
             }
-            
+
             // Get portfolio stats
             if (holdingsState is HoldingsLoaded) {
               portfolioValue = holdingsState.totalValue;
               profitLoss = holdingsState.totalProfitLoss;
               profitLossPercentage = holdingsState.totalProfitLossPercentage;
             }
-            
+
             // Total balance = Stonk Tokens + Portfolio Value
             double totalBalance = stonkBalance + portfolioValue;
-            
+
             return Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -533,9 +629,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Total balance amount
                   Text(
                     CurrencyFormatter.formatINR(totalBalance),
@@ -547,9 +643,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       height: 1.0,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Breakdown
                   Row(
                     children: [
@@ -607,15 +703,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  
+
                   if (profitLoss != 0) ...[
                     const SizedBox(height: 12),
-                    
+
                     // Percentage change
                     Row(
                       children: [
                         Icon(
-                          profitLoss >= 0 ? Icons.trending_up : Icons.trending_down,
+                          profitLoss >= 0
+                              ? Icons.trending_up
+                              : Icons.trending_down,
                           color: profitLoss >= 0 ? Colors.green : Colors.red,
                           size: 16,
                         ),
@@ -696,7 +794,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -704,19 +807,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 1,
-          ),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+            Icon(icon, color: color, size: 20),
             const SizedBox(width: 8),
             Text(
               title,
@@ -759,11 +855,7 @@ class LearnScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.school,
-              size: 80,
-              color: Color(0xFFE5BCE7),
-            ),
+            Icon(Icons.school, size: 80, color: Color(0xFFE5BCE7)),
             SizedBox(height: 20),
             Text(
               'Learn Trading',
@@ -822,11 +914,7 @@ class CryptoScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.currency_bitcoin,
-              size: 80,
-              color: Color(0xFFE5BCE7),
-            ),
+            Icon(Icons.currency_bitcoin, size: 80, color: Color(0xFFE5BCE7)),
             SizedBox(height: 20),
             Text(
               'Cryptocurrency',
