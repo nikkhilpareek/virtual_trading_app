@@ -12,10 +12,7 @@ import 'dart:developer' as developer;
 class HomePage extends StatefulWidget {
   final String userName;
 
-  const HomePage({
-    super.key,
-    this.userName = 'Nikhil', // Default name, can be passed from login
-  });
+  const HomePage({super.key, this.userName = 'Nikhil'});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -23,35 +20,47 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-
-  // Tab screens
   late final List<Widget> _screens;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    // New desired order: Watchlist, Market, Dashboard, Learn, Crypto
     _screens = [
-      DashboardScreen(userName: widget.userName),
-      const MarketScreen(),
-      const LearnScreen(),
       const WatchlistScreen(),
+      const MarketScreen(),
+      DashboardScreen(userName: widget.userName),
+      const LearnScreen(),
       const CryptoScreen(),
     ];
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: const Color(0xff0a0a0a),
-      body: _screens[_currentIndex],
+      body: PageView(
+        controller: _pageController,
+        physics: const BouncingScrollPhysics(),
+        onPageChanged: (index) => setState(() => _currentIndex = index),
+        children: _screens,
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
   Widget _buildBottomNavigationBar() {
-    // Floating "liquid glass" bar with custom animated items
+    // Order must match _screens: Watchlist, Market, Dashboard, Learn, Crypto
     final items = [
-      {'icon': Icons.home_outlined, 'active': Icons.home, 'label': 'Home'},
       {
         'icon': Icons.bookmark_border,
         'active': Icons.bookmark,
@@ -62,6 +71,7 @@ class _HomePageState extends State<HomePage> {
         'active': Icons.trending_up,
         'label': 'Market',
       },
+      {'icon': Icons.home_outlined, 'active': Icons.home, 'label': 'Home'},
       {'icon': Icons.school_outlined, 'active': Icons.school, 'label': 'Learn'},
       {
         'icon': Icons.currency_bitcoin,
@@ -71,199 +81,262 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return SafeArea(
-      minimum: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            height: 78,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-            decoration: BoxDecoration(
-              // subtle frosted glass gradient + tint
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withAlpha((0.02 * 255).round()),
-                  Colors.white.withAlpha((0.01 * 255).round()),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              color: Colors.white.withAlpha((0.02 * 255).round()),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withAlpha((0.06 * 255).round()),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((0.45 * 255).round()),
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
+      minimum: const EdgeInsets.only(left: 16, right: 16, bottom: 6),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(
+              height: 65,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withAlpha((0.02 * 255).round()),
+                    Colors.white.withAlpha((0.01 * 255).round()),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(items.length, (i) {
-                final isActive = _currentIndex == i;
-                final iconData = isActive
-                    ? items[i]['active'] as IconData
-                    : items[i]['icon'] as IconData;
-                final color = isActive
-                    ? const Color(0xFFE5BCE7)
-                    : Colors.white.withAlpha((0.7 * 255).round());
+                color: Colors.white.withAlpha((0.02 * 255).round()),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withAlpha((0.06 * 255).round()),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((0.42 * 255).round()),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(items.length, (i) {
+                  final isActive = _currentIndex == i;
+                  final iconData = isActive
+                      ? items[i]['active'] as IconData
+                      : items[i]['icon'] as IconData;
+                  final color = isActive
+                      ? const Color(0xFFE5BCE7)
+                      : Colors.white.withAlpha((0.7 * 255).round());
 
-                return Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () => setState(() => _currentIndex = i),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 350),
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        _pageController.animateToPage(
+                          i,
+                          duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
-                          width: isActive ? 50 : 42,
-                          height: isActive ? 50 : 42,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isActive
-                                ? color.withAlpha((0.12 * 255).round())
-                                : Colors.transparent,
-                            border: isActive
-                                ? Border.all(
-                                    color: color.withAlpha(
-                                      (0.18 * 255).round(),
-                                    ),
-                                    width: 1.2,
-                                  )
-                                : Border.all(
-                                    color: Colors.white.withAlpha(
-                                      (0.02 * 255).round(),
-                                    ),
-                                    width: 1,
-                                  ),
-                            // tiny inner glow to mimic liquid depth
-                            boxShadow: isActive
-                                ? [
-                                    BoxShadow(
-                                      color: color.withAlpha(
-                                        (0.08 * 255).round(),
+                        );
+                        setState(() => _currentIndex = i);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOut,
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isActive
+                                  ? color.withAlpha((0.12 * 255).round())
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isActive
+                                    ? color.withAlpha((0.18 * 255).round())
+                                    : Colors.white.withAlpha(
+                                        (0.02 * 255).round(),
                                       ),
-                                      blurRadius: 12,
-                                      spreadRadius: 1,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Center(
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(
-                                begin: isActive ? 1.0 : 1.0,
-                                end: isActive ? 1.18 : 1.0,
+                                width: 1.0,
                               ),
-                              duration: const Duration(milliseconds: 280),
-                              curve: Curves.easeOutBack,
-                              builder: (context, scale, child) =>
-                                  Transform.scale(scale: scale, child: child),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: color.withAlpha(
+                                          (0.06 * 255).round(),
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Center(
                               child: Icon(iconData, color: color, size: 20),
                             ),
                           ),
-                        ),
-
-                        // removed label area — icons only layout
-                        const SizedBox(height: 6),
-                      ],
+                          const SizedBox(height: 4),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
           ),
         ),
       ),
     );
   }
-  // ...existing code...
+}
 
-  // Widget _buildBottomNavigationBar() {
-  //   return SafeArea(
-  //     minimum: const EdgeInsets.only(left: 16, right: 16,bottom:12),
-  //     child: ClipRRect(
-  //       borderRadius: BorderRadius.circular(20),
-  //       child: BackdropFilter(
-  //         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-  //         child: Container(
-  //           height: 72,
-  //           decoration: BoxDecoration(
-  //             color: Colors.white.withOpacity(0.03),
-  //             borderRadius: BorderRadius.circular(20),
-  //             border: Border.all(
-  //               color: Colors.white.withOpacity(0.06),
-  //               width: 1,
-  //             ),
-  //             boxShadow: [
-  //               BoxShadow(
-  //                 color: Colors.black.withOpacity(0.4),
-  //                 blurRadius: 10,
-  //                 offset: const Offset(0, 6),
-  //               )
-  //             ],
-  //           ),
-  //           child: BottomNavigationBar(
-  //             currentIndex: _currentIndex,
-  //             onTap: (index)=>setState(()=>_currentIndex = index),
-  //             backgroundColor: Colors.transparent,
-  //             selectedItemColor: const Color(0xFFE5BCE7),
-  //             unselectedItemColor: Colors.white.withOpacity(0.6),
-  //             type: BottomNavigationBarType.fixed,
-  //             elevation: 0,
-  //             showUnselectedLabels: true,
-  //             selectedLabelStyle: const TextStyle(
-  //               fontFamily: 'ClashDisplay',
-  //               fontWeight: FontWeight.w500,
-  //               fontSize: 12,
-  //             ),
-  //             unselectedLabelStyle: const TextStyle(
-  //               fontFamily: 'ClashDisplay',
-  //               fontWeight: FontWeight.w400,
-  //               fontSize: 12,
-  //             ),
-  //             items: const [
-  //               BottomNavigationBarItem(
-  //                 icon: Icon(Icons.home_outlined),
-  //                 activeIcon: Icon(Icons.home),
-  //                 label: 'Home',
-  //               ),
-  //               BottomNavigationBarItem(
-  //                 icon: Icon(Icons.bookmark_border),
-  //                 activeIcon: Icon(Icons.bookmark),
-  //                 label: 'Watchlist',
-  //               ),
-  //               BottomNavigationBarItem(
-  //                 icon: Icon(Icons.trending_up),
-  //                 activeIcon: Icon(Icons.trending_up),
-  //                 label: 'Market',
-  //               ),
-  //               BottomNavigationBarItem(
-  //                 icon: Icon(Icons.school_outlined),
-  //                 activeIcon: Icon(Icons.school),
-  //                 label: 'Learn',
-  //               ),
-  //               BottomNavigationBarItem(
-  //                 icon: Icon(Icons.currency_bitcoin),
-  //                 activeIcon: Icon(Icons.currency_bitcoin),
-  //                 label: 'Crypto',
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+Widget _buildTopPerformers() {
+  // Mock NSE top performers
+  final List<Map<String, Object>> topStocks = [
+    {
+      'symbol': 'TCS',
+      'name': 'Tata Consultancy Services',
+      'price': 3200.50,
+      'change': 2.3,
+    },
+    {
+      'symbol': 'RELIANCE',
+      'name': 'Reliance Industries',
+      'price': 2310.75,
+      'change': 1.6,
+    },
+    {'symbol': 'INFY', 'name': 'Infosys', 'price': 1420.10, 'change': 3.8},
+    {'symbol': 'HDFC', 'name': 'HDFC Bank', 'price': 1550.30, 'change': -0.9},
+    {
+      'symbol': 'ICICIBANK',
+      'name': 'ICICI Bank',
+      'price': 970.45,
+      'change': 4.1,
+    },
+  ];
+
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xff1a1a1a),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: Colors.white.withAlpha((0.08 * 255).round()),
+        width: 1,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Top Performer of the Week',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: topStocks.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final s = topStocks[index];
+              final symbol = s['symbol'] as String;
+              final name = s['name'] as String;
+              final price = s['price'] as double;
+              final change = s['change'] as double;
+              final positive = change >= 0;
+
+              return Container(
+                width: 220,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xff121212),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withAlpha((0.04 * 255).round()),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: (positive ? Colors.green : Colors.red).withAlpha(
+                          (0.12 * 255).round(),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          symbol,
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: positive ? Colors.green : Colors.red,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            CurrencyFormatter.formatINR(price),
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withAlpha(
+                                (0.7 * 255).round(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${positive ? '+' : ''}${change.toStringAsFixed(2)}%',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: positive ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // Dashboard Screen (Home Tab)
@@ -299,14 +372,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Hello, User!
                 BlocBuilder<UserBloc, UserState>(
                   builder: (context, state) {
                     String displayName = widget.userName;
-                    if (state is UserLoaded) {
+                    if (state is UserLoaded)
                       displayName = state.profile.displayName;
-                    }
-
                     return RichText(
                       text: TextSpan(
                         children: [
@@ -334,10 +404,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-                // Right side - Notification bell and profile icons
                 Row(
                   children: [
-                    // Notification Bell Icon
                     Container(
                       width: 40,
                       height: 40,
@@ -346,10 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
-                        onPressed: () {
-                          // Handle notification tap
-                          developer.log('Notification tapped');
-                        },
+                        onPressed: () => developer.log('Notification tapped'),
                         icon: const Icon(
                           Icons.notifications,
                           color: Colors.white,
@@ -358,10 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: EdgeInsets.zero,
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
-                    // Profile Icon
                     Container(
                       width: 40,
                       height: 40,
@@ -370,15 +432,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
-                        onPressed: () {
-                          // Navigate to profile screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        ),
                         icon: const Icon(
                           Icons.person,
                           color: Colors.black,
@@ -394,26 +453,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildBalanceCard(),
+              const SizedBox(height: 30),
+              _buildQuickActions(context),
+              const SizedBox(height: 20),
 
-            // Portfolio Balance Card
-            _buildBalanceCard(),
-
-            const SizedBox(height: 30),
-
-            // Quick Actions
-            _buildQuickActions(context),
-
-            const SizedBox(height: 20),
-
-            // Recent Activity from TransactionBloc
-            Expanded(
-              child: BlocBuilder<TransactionBloc, TransactionState>(
+              // Recent Activity
+              BlocBuilder<TransactionBloc, TransactionState>(
                 builder: (context, state) {
                   if (state is TransactionLoading) {
                     return Container(
@@ -437,11 +490,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   if (state is TransactionLoaded &&
                       state.transactions.isNotEmpty) {
-                    // Show only the last 5 transactions
                     final recentTransactions = state.transactions
                         .take(5)
                         .toList();
-
                     return Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -466,22 +517,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          Expanded(
+                          SizedBox(
+                            height: 180,
                             child: ListView.separated(
                               itemCount: recentTransactions.length,
-                              separatorBuilder: (context, index) => Divider(
-                                color: Colors.white.withAlpha((0.1 * 255).round()),
+                              separatorBuilder: (c, i) => Divider(
+                                color: Colors.white.withAlpha(
+                                  (0.1 * 255).round(),
+                                ),
                                 height: 24,
                               ),
-                              itemBuilder: (context, index) {
-                                final transaction = recentTransactions[index];
+                              itemBuilder: (c, i) {
+                                final t = recentTransactions[i];
                                 final isBuy =
-                                    transaction.transactionType ==
-                                    TransactionType.buy;
-
+                                    t.transactionType == TransactionType.buy;
                                 return Row(
                                   children: [
-                                    // Icon
                                     Container(
                                       width: 40,
                                       height: 40,
@@ -502,15 +553,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-
-                                    // Asset details
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            transaction.assetSymbol,
+                                            t.assetSymbol,
                                             style: TextStyle(
                                               fontFamily: 'ClashDisplay',
                                               fontSize: 16,
@@ -520,25 +569,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${transaction.quantity} shares @ ${CurrencyFormatter.formatINR(transaction.pricePerUnit)}',
+                                            '${t.quantity} shares @ ${CurrencyFormatter.formatINR(t.pricePerUnit)}',
                                             style: TextStyle(
                                               fontFamily: 'ClashDisplay',
                                               fontSize: 12,
                                               fontWeight: FontWeight.w400,
-                                              color: Colors.white.withAlpha((0.5 * 255).round()),
+                                              color: Colors.white.withAlpha(
+                                                (0.5 * 255).round(),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-
-                                    // Amount
                                     Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          '${isBuy ? '-' : '+'}${CurrencyFormatter.formatINR(transaction.totalAmount).replaceAll('₹', '')}',
+                                          '${isBuy ? '-' : '+'}${CurrencyFormatter.formatINR(t.totalAmount).replaceAll('₹', '')}',
                                           style: TextStyle(
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 16,
@@ -550,12 +599,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          transaction.formattedDate,
+                                          t.formattedDate,
                                           style: TextStyle(
                                             fontFamily: 'ClashDisplay',
                                             fontSize: 12,
                                             fontWeight: FontWeight.w400,
-                                            color: Colors.white.withAlpha((0.5 * 255).round()),
+                                            color: Colors.white.withAlpha(
+                                              (0.5 * 255).round(),
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -570,7 +621,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   }
 
-                  // Empty state
                   return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -582,60 +632,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 1,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recent Activity',
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Expanded(
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.trending_up,
-                                  size: 60,
-                                  color: Colors.white.withAlpha((0.3* 255).round()),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No recent activity yet',
-                                  style: TextStyle(
-                                    fontFamily: 'ClashDisplay',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.white.withAlpha((0.5 * 255).round()),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Start trading to see your activity',
-                                  style: TextStyle(
-                                    fontFamily: 'ClashDisplay',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.white.withAlpha((0.3 * 255).round()),
-                                  ),
-                                ),
-                              ],
+                    child: Container(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Recent Activities",
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
+                            Icon(
+                              Icons.trending_up,
+                              size: 60,
+                              color: Colors.white.withAlpha(
+                                (0.3 * 255).round(),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No recent activity yet',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withAlpha(
+                                  (0.5 * 255).round(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Start trading to see your activity',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withAlpha(
+                                  (0.3 * 255).round(),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   );
                 },
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+              _buildTopPerformers(),
+              const SizedBox(height: 16),
+              _buildTopPerformers(), const SizedBox(height: 16),
+              _buildTopPerformers(), const SizedBox(height: 16),
+              _buildTopPerformers(), const SizedBox(height: 16),
+              _buildTopPerformers(),
+            ],
+          ),
         ),
       ),
     );
@@ -698,7 +756,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5BCE7).withAlpha((0.2 * 255).round()),
+                          color: const Color(
+                            0xFFE5BCE7,
+                          ).withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
@@ -739,7 +799,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white.withAlpha((0.5 * 255).round()),
+                                color: Colors.white.withAlpha(
+                                  (0.5 * 255).round(),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -765,7 +827,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: Colors.white.withAlpha((0.5 * 255).round()),
+                                color: Colors.white.withAlpha(
+                                  (0.5 * 255).round(),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -887,7 +951,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: color.withAlpha((0.11 * 255).round()),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withAlpha((0.3 * 255).round()), width: 1),
+          border: Border.all(
+            color: color.withAlpha((0.3 * 255).round()),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
