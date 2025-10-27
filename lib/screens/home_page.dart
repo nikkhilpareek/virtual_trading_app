@@ -48,135 +48,212 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBottomNavigationBar() {
+    // Floating "liquid glass" bar with custom animated items
+    final items = [
+      {'icon': Icons.home_outlined, 'active': Icons.home, 'label': 'Home'},
+      {
+        'icon': Icons.bookmark_border,
+        'active': Icons.bookmark,
+        'label': 'Watchlist',
+      },
+      {
+        'icon': Icons.trending_up,
+        'active': Icons.trending_up,
+        'label': 'Market',
+      },
+      {'icon': Icons.school_outlined, 'active': Icons.school, 'label': 'Learn'},
+      {
+        'icon': Icons.currency_bitcoin,
+        'active': Icons.currency_bitcoin,
+        'label': 'Crypto',
+      },
+    ];
+
     return SafeArea(
-      minimum: const EdgeInsets.only(left: 16, right: 16,bottom:12),
+      minimum: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
           child: Container(
-            height: 72,
+            height: 78,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(20),
+              // subtle frosted glass gradient + tint
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.02),
+                  Colors.white.withOpacity(0.01),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: Colors.white.withOpacity(0.06),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 10,
-                  offset: const Offset(0, 6),
-                )
+                  color: Colors.black.withOpacity(0.45),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
               ],
             ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index)=>setState(()=>_currentIndex = index),
-              backgroundColor: Colors.transparent,
-              selectedItemColor: const Color(0xFFE5BCE7),
-              unselectedItemColor: Colors.white.withOpacity(0.6),
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              showUnselectedLabels: true,
-              selectedLabelStyle: const TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontWeight: FontWeight.w400,
-                fontSize: 12,
-              ),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  activeIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.bookmark_border),
-                  activeIcon: Icon(Icons.bookmark),
-                  label: 'Watchlist',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.trending_up),
-                  activeIcon: Icon(Icons.trending_up),
-                  label: 'Market',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.school_outlined),
-                  activeIcon: Icon(Icons.school),
-                  label: 'Learn',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.currency_bitcoin),
-                  activeIcon: Icon(Icons.currency_bitcoin),
-                  label: 'Crypto',
-                ),
-              ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(items.length, (i) {
+                final isActive = _currentIndex == i;
+                final iconData = isActive
+                    ? items[i]['active'] as IconData
+                    : items[i]['icon'] as IconData;
+                final color = isActive
+                    ? const Color(0xFFE5BCE7)
+                    : Colors.white.withOpacity(0.7);
+
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => setState(() => _currentIndex = i),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
+                          width: isActive ? 50 : 42,
+                          height: isActive ? 50 : 42,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isActive
+                                ? color.withOpacity(0.12)
+                                : Colors.transparent,
+                            border: isActive
+                                ? Border.all(
+                                    color: color.withOpacity(0.18),
+                                    width: 1.2,
+                                  )
+                                : Border.all(
+                                    color: Colors.white.withOpacity(0.02),
+                                    width: 1,
+                                  ),
+                            // tiny inner glow to mimic liquid depth
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color: color.withOpacity(0.08),
+                                      blurRadius: 12,
+                                      spreadRadius: 1,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Center(
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(
+                                begin: isActive ? 1.0 : 1.0,
+                                end: isActive ? 1.18 : 1.0,
+                              ),
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeOutBack,
+                              builder: (context, scale, child) =>
+                                  Transform.scale(scale: scale, child: child),
+                              child: Icon(iconData, color: color, size: 20),
+                            ),
+                          ),
+                        ),
+
+                        // removed label area — icons only layout
+                        const SizedBox(height: 6),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ),
           ),
         ),
       ),
     );
   }
+  // ...existing code...
 
   // Widget _buildBottomNavigationBar() {
-  //   return Container(
-  //     decoration: BoxDecoration(
-  //       color: const Color(0xFF0a0a0a),
-  //       border: Border(
-  //         top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+  //   return SafeArea(
+  //     minimum: const EdgeInsets.only(left: 16, right: 16,bottom:12),
+  //     child: ClipRRect(
+  //       borderRadius: BorderRadius.circular(20),
+  //       child: BackdropFilter(
+  //         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+  //         child: Container(
+  //           height: 72,
+  //           decoration: BoxDecoration(
+  //             color: Colors.white.withOpacity(0.03),
+  //             borderRadius: BorderRadius.circular(20),
+  //             border: Border.all(
+  //               color: Colors.white.withOpacity(0.06),
+  //               width: 1,
+  //             ),
+  //             boxShadow: [
+  //               BoxShadow(
+  //                 color: Colors.black.withOpacity(0.4),
+  //                 blurRadius: 10,
+  //                 offset: const Offset(0, 6),
+  //               )
+  //             ],
+  //           ),
+  //           child: BottomNavigationBar(
+  //             currentIndex: _currentIndex,
+  //             onTap: (index)=>setState(()=>_currentIndex = index),
+  //             backgroundColor: Colors.transparent,
+  //             selectedItemColor: const Color(0xFFE5BCE7),
+  //             unselectedItemColor: Colors.white.withOpacity(0.6),
+  //             type: BottomNavigationBarType.fixed,
+  //             elevation: 0,
+  //             showUnselectedLabels: true,
+  //             selectedLabelStyle: const TextStyle(
+  //               fontFamily: 'ClashDisplay',
+  //               fontWeight: FontWeight.w500,
+  //               fontSize: 12,
+  //             ),
+  //             unselectedLabelStyle: const TextStyle(
+  //               fontFamily: 'ClashDisplay',
+  //               fontWeight: FontWeight.w400,
+  //               fontSize: 12,
+  //             ),
+  //             items: const [
+  //               BottomNavigationBarItem(
+  //                 icon: Icon(Icons.home_outlined),
+  //                 activeIcon: Icon(Icons.home),
+  //                 label: 'Home',
+  //               ),
+  //               BottomNavigationBarItem(
+  //                 icon: Icon(Icons.bookmark_border),
+  //                 activeIcon: Icon(Icons.bookmark),
+  //                 label: 'Watchlist',
+  //               ),
+  //               BottomNavigationBarItem(
+  //                 icon: Icon(Icons.trending_up),
+  //                 activeIcon: Icon(Icons.trending_up),
+  //                 label: 'Market',
+  //               ),
+  //               BottomNavigationBarItem(
+  //                 icon: Icon(Icons.school_outlined),
+  //                 activeIcon: Icon(Icons.school),
+  //                 label: 'Learn',
+  //               ),
+  //               BottomNavigationBarItem(
+  //                 icon: Icon(Icons.currency_bitcoin),
+  //                 activeIcon: Icon(Icons.currency_bitcoin),
+  //                 label: 'Crypto',
+  //               ),
+  //             ],
+  //           ),
+  //         ),
   //       ),
-  //     ),
-  //     child: BottomNavigationBar(
-  //       currentIndex: _currentIndex,
-  //       onTap: (index) => setState(() => _currentIndex = index),
-  //       backgroundColor: Colors.transparent,
-  //       selectedItemColor: const Color(0xFFE5BCE7),
-  //       unselectedItemColor: Colors.white.withOpacity(0.5),
-  //       type: BottomNavigationBarType.fixed,
-  //       elevation: 0,
-  //       selectedLabelStyle: const TextStyle(
-  //         fontFamily: 'ClashDisplay',
-  //         fontWeight: FontWeight.w500,
-  //         fontSize: 12,
-  //       ),
-  //       unselectedLabelStyle: const TextStyle(
-  //         fontFamily: 'ClashDisplay',
-  //         fontWeight: FontWeight.w400,
-  //         fontSize: 12,
-  //       ),
-  //       items: const [
-  //         BottomNavigationBarItem(
-  //           icon: Icon(Icons.home_outlined),
-  //           activeIcon: Icon(Icons.home),
-  //           label: 'Home',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Icon(Icons.trending_up),
-  //           activeIcon: Icon(Icons.trending_up),
-  //           label: 'Market',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Icon(Icons.school_outlined),
-  //           activeIcon: Icon(Icons.school),
-  //           label: 'Learn',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Icon(Icons.bookmark_border),
-  //           activeIcon: Icon(Icons.bookmark),
-  //           label: 'Watchlist',
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Icon(Icons.currency_bitcoin),
-  //           activeIcon: Icon(Icons.currency_bitcoin),
-  //           label: 'Crypto',
-  //         ),
-  //       ],
   //     ),
   //   );
   // }
