@@ -1,0 +1,42 @@
+[
+  {
+    "id": "lesson_1",
+    "title": "The Absolute Basics",
+    "description": "Understand what the stock market is, how it works, and the key terms every beginner should know.",
+    "file": "assets/lessons/lesson1.md",
+    "tags": ["beginner", "introduction", "basics"],
+    "duration": "8 min"
+  },
+  {
+    "id": "lesson_2",
+    "title": "How to Place Your First Trade",
+    "description": "Learn how to open a trading account, place a buy or sell order, and understand the order book.",
+    "file": "assets/lessons/lesson2.md",
+    "tags": ["trading", "execution", "practical"],
+    "duration": "10 min"
+  },
+  {
+    "id": "lesson_3",
+    "title": "How to Analyze Stocks",
+    "description": "Discover how to read financial statements, evaluate company performance, and identify good investment opportunities.",
+    "file": "assets/lessons/lesson3.md",
+    "tags": ["analysis", "fundamentals", "valuation"],
+    "duration": "12 min"
+  },
+  {
+    "id": "lesson_4",
+    "title": "Building Your Strategy",
+    "description": "Combine technical and fundamental analysis to create a trading or investment strategy that fits your goals.",
+    "file": "assets/lessons/lesson4.md",
+    "tags": ["strategy", "portfolio", "planning"],
+    "duration": "15 min"
+  },
+  {
+    "id": "lesson_5",
+    "title": "Advanced Concepts",
+    "description": "Dive into risk management, indicators, and advanced market psychology to refine your approach.",
+    "file": "assets/lessons/lesson5.md",
+    "tags": ["advanced", "psychology", "risk"],
+    "duration": "18 min"
+  }
+]
