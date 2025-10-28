@@ -7,6 +7,7 @@ import 'market_screen.dart';
 import 'watchlist_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
+import 'learn_screen.dart';
 import 'dart:ui';
 
 class HomePage extends StatefulWidget {
@@ -935,6 +936,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        
       ],
     );
   }
@@ -969,59 +972,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Learn Screen
-class LearnScreen extends StatelessWidget {
-  const LearnScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
-      appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: const Text(
-          'Learn',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.school, size: 80, color: Color(0xFFE5BCE7)),
-            SizedBox(height: 20),
-            Text(
-              'Learn Trading',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Educational content coming soon...',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
               ),
             ),
           ],

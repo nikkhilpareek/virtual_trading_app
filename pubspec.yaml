@@ -55,8 +55,12 @@ dependencies:
   # Internationalization
   intl: ^0.20.2
   
-  # Device preview for development
-  device_preview: ^1.1.0
+  # Markdown rendering
+  flutter_markdown: ^0.7.4+1
+  
+  # Text to speech
+  flutter_tts: ^4.2.0
+  
   supabase_flutter: ^2.10.3
   flutter_launcher_icons: ^0.14.4
 
@@ -87,6 +91,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/data/
+    - assets/lessons/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
