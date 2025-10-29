@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
+import 'stock_detail_screen.dart';
 
 class AssetsScreen extends StatefulWidget {
   const AssetsScreen({super.key});
@@ -377,17 +378,26 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
     final pnlPercentage = (pnl / investedValue) * 100;
     final isPositive = pnl >= 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xff121212),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.06),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StockDetailScreen(holding: holding),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xff121212),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.06),
+          ),
         ),
-      ),
-      child: Column(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -482,6 +492,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
             ],
           ),
         ],
+      ),
       ),
     );
   }

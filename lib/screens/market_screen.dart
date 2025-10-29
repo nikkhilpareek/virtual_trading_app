@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
-import '../core/services/alpha_vantage_service.dart';
+import '../core/services/yfinance_service.dart';
 import '../core/utils/currency_formatter.dart';
 import 'dart:developer' as developer;
+import 'dart:async';
 
 // Market asset data model with real-time prices
 class MarketAsset {
@@ -43,18 +44,20 @@ class MarketAsset {
   }
 }
 
-// Asset definitions for Indian Market (NSE/BSE)
-// Prices will be fetched from Alpha Vantage API
+// Asset definitions for Indian Market (NSE)
+// Prices will be fetched from YFinance API via FastAPI backend
 const List<Map<String, dynamic>> _assetDefinitions = [
-  // Indian Stocks (NSE/BSE)
-  {'symbol': 'RELIANCE.BSE', 'name': 'Reliance Industries', 'type': AssetType.stock},
-  {'symbol': 'TCS.BSE', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
-  {'symbol': 'INFY.BSE', 'name': 'Infosys Limited', 'type': AssetType.stock},
-  {'symbol': 'HDFCBANK.BSE', 'name': 'HDFC Bank', 'type': AssetType.stock},
-  {'symbol': 'ICICIBANK.BSE', 'name': 'ICICI Bank', 'type': AssetType.stock},
-  {'symbol': 'BHARTIARTL.BSE', 'name': 'Bharti Airtel', 'type': AssetType.stock},
-  {'symbol': 'ITC.BSE', 'name': 'ITC Limited', 'type': AssetType.stock},
-  {'symbol': 'WIPRO.BSE', 'name': 'Wipro Limited', 'type': AssetType.stock},
+  // Indian Stocks (NSE)
+  {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'type': AssetType.stock},
+  {'symbol': 'TCS', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
+  {'symbol': 'INFY', 'name': 'Infosys Limited', 'type': AssetType.stock},
+  {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'type': AssetType.stock},
+  {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'type': AssetType.stock},
+  {'symbol': 'BHARTIARTL', 'name': 'Bharti Airtel', 'type': AssetType.stock},
+  {'symbol': 'ITC', 'name': 'ITC Limited', 'type': AssetType.stock},
+  {'symbol': 'WIPRO', 'name': 'Wipro Limited', 'type': AssetType.stock},
+  {'symbol': 'HINDUNILVR', 'name': 'Hindustan Unilever', 'type': AssetType.stock},
+  {'symbol': 'LT', 'name': 'Larsen & Toubro', 'type': AssetType.stock},
   
   // Crypto (INR pairs)
   {'symbol': 'BTC', 'name': 'Bitcoin', 'type': AssetType.crypto},
@@ -62,8 +65,8 @@ const List<Map<String, dynamic>> _assetDefinitions = [
   {'symbol': 'BNB', 'name': 'Binance Coin', 'type': AssetType.crypto},
   
   // Mutual Funds (Indian)
-  {'symbol': 'SBI.BSE', 'name': 'SBI Mutual Fund', 'type': AssetType.mutualFund},
-  {'symbol': 'AXIS.BSE', 'name': 'Axis Mutual Fund', 'type': AssetType.mutualFund},
+  {'symbol': 'SBIN', 'name': 'State Bank of India', 'type': AssetType.mutualFund},
+  {'symbol': 'AXISBANK', 'name': 'Axis Bank', 'type': AssetType.mutualFund},
 ];
 
 class MarketScreen extends StatefulWidget {
@@ -74,7 +77,8 @@ class MarketScreen extends StatefulWidget {
 }
 
 class _MarketScreenState extends State<MarketScreen> {
-  final AlphaVantageService _apiService = AlphaVantageService();
+  final YFinanceService _apiService = YFinanceService();
+  Timer? _refreshTimer;
   
   AssetType? _selectedFilter;
   String _searchQuery = '';
@@ -88,13 +92,29 @@ class _MarketScreenState extends State<MarketScreen> {
   void initState() {
     super.initState();
     _loadMarketData();
+    // Start continuous refresh every 5 seconds (not 1 second to avoid overwhelming the API)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!_isLoading) {
+        _loadMarketData(silent: true);
+      }
+    });
   }
 
-  Future<void> _loadMarketData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadMarketData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    developer.log('Starting to load market data... (silent: $silent)', name: 'MarketScreen');
 
     try {
       final List<MarketAsset> assets = [];
@@ -105,11 +125,15 @@ class _MarketScreenState extends State<MarketScreen> {
           .map((a) => a['symbol'] as String)
           .toList();
 
+      developer.log('Loading ${stockSymbols.length} stocks', name: 'MarketScreen');
+
       for (final symbol in stockSymbols) {
         final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
         try {
+          developer.log('Fetching quote for $symbol...', name: 'MarketScreen');
           final quote = await _apiService.getStockQuote(symbol);
           if (quote != null) {
+            developer.log('Got quote for $symbol: ${quote.price}', name: 'MarketScreen');
             assets.add(MarketAsset(
               symbol: symbol,
               name: assetDef['name'] as String,
@@ -118,13 +142,11 @@ class _MarketScreenState extends State<MarketScreen> {
               type: AssetType.stock,
               lastUpdated: DateTime.now(),
             ));
+          } else {
+            developer.log('Quote was null for $symbol', name: 'MarketScreen');
           }
-          
-          // Small delay to avoid rate limiting
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading stock $symbol', name: 'MarketScreen', error: e, stackTrace: st);
-
         }
       }
 
@@ -148,15 +170,12 @@ class _MarketScreenState extends State<MarketScreen> {
               lastUpdated: DateTime.now(),
             ));
           }
-          
-          // Small delay to avoid rate limiting
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading crypto $symbol', name: 'MarketScreen', error: e, stackTrace:st);
         }
       }
 
-      // Load mutual funds (fallback to placeholder since Alpha Vantage may not support all)
+      // Load mutual funds (using stock quotes from YFinance)
       final mutualFundSymbols = _assetDefinitions
           .where((a) => a['type'] == AssetType.mutualFund)
           .toList();
@@ -174,8 +193,6 @@ class _MarketScreenState extends State<MarketScreen> {
               lastUpdated: DateTime.now(),
             ));
           }
-          
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading mutual fund ${assetDef['symbol']}', name: 'MarketScreen', error: e, stackTrace: st);
           // Add placeholder data for mutual funds if API fails
@@ -195,7 +212,9 @@ class _MarketScreenState extends State<MarketScreen> {
         _isLoading = false;
         _lastRefresh = DateTime.now();
       });
-    } catch (e) {
+      developer.log('Market data loaded successfully: ${assets.length} assets', name: 'MarketScreen');
+    } catch (e, st) {
+      developer.log('Fatal error loading market data', name: 'MarketScreen', error: e, stackTrace: st);
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load market data: $e';
