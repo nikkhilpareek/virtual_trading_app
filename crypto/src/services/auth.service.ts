@@ -69,44 +69,44 @@ export const signup = async (data: SignupData): Promise<AuthResponse> => {
  * Login an existing user
  */
 export const login = async (data: LoginData): Promise<AuthResponse> => {
-  const { email, password } = data;
+    const { email, password } = data;
 
-  // Find user
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+    // Find user
+    const user = await prisma.user.findUnique({
+        where: { email },
+    });
 
-  if (!user) {
-    throw new Error('Invalid credentials');
-  }
+    if (!user) {
+        throw new Error('Invalid credentials');
+    }
 
-  // Verify password
-  const isPasswordValid = await comparePassword(password, user.password);
+    // Verify password
+    const isPasswordValid = await comparePassword(password, user.password);
 
-  if (!isPasswordValid) {
-    throw new Error('Invalid credentials');
-  }
+    if (!isPasswordValid) {
+        throw new Error('Invalid credentials');
+    }
 
-  // Update last login timestamp
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
-  });
+    // Update last login timestamp
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+    });
 
-  // Generate tokens
-  const tokens = generateTokens({
-    userId: user.id,
-    email: user.email,
-  });
+    // Generate tokens
+    const tokens = generateTokens({
+        userId: user.id,
+        email: user.email,
+    });
 
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
-    tokens,
-  };
+    return {
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+        },
+        tokens,
+    };
 };/**
  * Refresh access token using refresh token
  */

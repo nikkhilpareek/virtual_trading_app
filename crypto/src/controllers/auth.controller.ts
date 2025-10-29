@@ -6,67 +6,67 @@ import { isValidEmail, isValidPassword, sanitizeInput } from '../utils/validatio
  * Handle user signup
  */
 export const signup = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email, password, name } = req.body;
+    try {
+        const { email, password, name } = req.body;
 
-    // Validate input presence
-    if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
-      return;
+        // Validate input presence
+        if (!email || !password) {
+            res.status(400).json({
+                success: false,
+                message: 'Email and password are required',
+            });
+            return;
+        }
+
+        // Sanitize inputs
+        const sanitizedEmail = sanitizeInput(email);
+        const sanitizedName = name ? sanitizeInput(name) : undefined;
+
+        // Validate email format
+        if (!isValidEmail(sanitizedEmail)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid email format',
+            });
+            return;
+        }
+
+        // Validate password strength
+        if (!isValidPassword(password)) {
+            res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters',
+            });
+            return;
+        }
+
+        const result = await authService.signup({
+            email: sanitizedEmail,
+            password,
+            name: sanitizedName,
+        });
+
+        res.status(201).json({
+            success: true,
+            data: result,
+            message: 'User registered successfully',
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        if (errorMessage.includes('already exists')) {
+            res.status(409).json({
+                success: false,
+                message: errorMessage,
+            });
+            return;
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
     }
-
-    // Sanitize inputs
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedName = name ? sanitizeInput(name) : undefined;
-
-    // Validate email format
-    if (!isValidEmail(sanitizedEmail)) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid email format',
-      });
-      return;
-    }
-
-    // Validate password strength
-    if (!isValidPassword(password)) {
-      res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters',
-      });
-      return;
-    }
-
-    const result = await authService.signup({
-      email: sanitizedEmail,
-      password,
-      name: sanitizedName,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'User registered successfully',
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    if (errorMessage.includes('already exists')) {
-      res.status(409).json({
-        success: false,
-        message: errorMessage,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-  }
 };/**
  * Handle user login
  */
