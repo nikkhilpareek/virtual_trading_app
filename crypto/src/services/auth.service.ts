@@ -1,70 +1,68 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateTokens, verifyRefreshToken, TokenPair } from './token.service';
 
-const prisma = new PrismaClient();
-
 export interface SignupData {
-  email: string;
-  password: string;
-  name?: string;
+    email: string;
+    password: string;
+    name?: string;
 }
 
 export interface LoginData {
-  email: string;
-  password: string;
+    email: string;
+    password: string;
 }
 
 export interface AuthResponse {
-  user: {
-    id: string;
-    email: string;
-    name: string | null;
-  };
-  tokens: TokenPair;
+    user: {
+        id: string;
+        email: string;
+        name: string | null;
+    };
+    tokens: TokenPair;
 }
 
 /**
  * Register a new user
  */
 export const signup = async (data: SignupData): Promise<AuthResponse> => {
-  const { email, password, name } = data;
+    const { email, password, name } = data;
 
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+        where: { email },
+    });
 
-  if (existingUser) {
-    throw new Error('User with this email already exists');
-  }
+    if (existingUser) {
+        throw new Error('User with this email already exists');
+    }
 
-  // Hash password
-  const hashedPassword = await hashPassword(password);
+    // Hash password
+    const hashedPassword = await hashPassword(password);
 
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-    },
-  });
+    // Create user
+    const user = await prisma.user.create({
+        data: {
+            email,
+            password: hashedPassword,
+            name,
+        },
+    });
 
-  // Generate tokens
-  const tokens = generateTokens({
-    userId: user.id,
-    email: user.email,
-  });
+    // Generate tokens
+    const tokens = generateTokens({
+        userId: user.id,
+        email: user.email,
+    });
 
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
-    tokens,
-  };
+    return {
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+        },
+        tokens,
+    };
 };
 
 /**
@@ -89,6 +87,12 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     throw new Error('Invalid credentials');
   }
 
+  // Update last login timestamp
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
   // Generate tokens
   const tokens = generateTokens({
     userId: user.id,
@@ -103,30 +107,28 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     },
     tokens,
   };
-};
-
-/**
+};/**
  * Refresh access token using refresh token
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<TokenPair> => {
-  try {
-    const decoded = verifyRefreshToken(refreshToken);
+    try {
+        const decoded = verifyRefreshToken(refreshToken);
 
-    // Verify user still exists
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
+        // Verify user still exists
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+        });
 
-    if (!user) {
-      throw new Error('User not found');
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Generate new token pair
+        return generateTokens({
+            userId: user.id,
+            email: user.email,
+        });
+    } catch (error) {
+        throw new Error('Invalid refresh token');
     }
-
-    // Generate new token pair
-    return generateTokens({
-      userId: user.id,
-      email: user.email,
-    });
-  } catch (error) {
-    throw new Error('Invalid refresh token');
-  }
 };
