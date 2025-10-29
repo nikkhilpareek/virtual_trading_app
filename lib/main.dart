@@ -41,6 +41,10 @@ class MyApp extends StatelessWidget {
         title: 'Stonks',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          appBarTheme: const AppBarTheme(
+            iconTheme: IconThemeData(color: Colors.white),
+            actionsIconTheme: IconThemeData(color: Colors.white),
+          ),
         ),
         home: const AuthGate(),
       ),

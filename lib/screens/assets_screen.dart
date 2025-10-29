@@ -1,0 +1,575 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../core/blocs/blocs.dart';
+import '../core/models/models.dart';
+import '../core/utils/currency_formatter.dart';
+
+class AssetsScreen extends StatefulWidget {
+  const AssetsScreen({super.key});
+
+  @override
+  State<AssetsScreen> createState() => _AssetsScreenState();
+}
+
+class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xff0a0a0a),
+      extendBody: true,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            // Title
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text(
+                'Assets',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Portfolio Summary Card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: BlocBuilder<HoldingsBloc, HoldingsState>(
+                builder: (context, state) {
+                  double totalValue = 0;
+                  double totalInvested = 0;
+                  double totalPnL = 0;
+
+                  if (state is HoldingsLoaded) {
+                    for (var holding in state.holdings) {
+                      final currentValue = (holding.currentPrice ?? holding.averagePrice) * holding.quantity;
+                      final investedValue = holding.averagePrice * holding.quantity;
+                      totalValue += currentValue;
+                      totalInvested += investedValue;
+                    }
+                    totalPnL = totalValue - totalInvested;
+                  }
+
+                  final pnlPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0.0;
+                  final isPositive = totalPnL >= 0;
+
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFFE5BCE7).withOpacity(0.1),
+                          const Color(0xFFD4A5D6).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Portfolio Value',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          CurrencyFormatter.formatINR(totalValue),
+                          style: const TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              isPositive ? Icons.trending_up : Icons.trending_down,
+                              color: isPositive ? Colors.green : Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${isPositive ? '+' : ''}${CurrencyFormatter.formatINR(totalPnL)}',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: isPositive ? Colors.green : Colors.red,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '(${isPositive ? '+' : ''}${pnlPercentage.toStringAsFixed(2)}%)',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isPositive ? Colors.green.withOpacity(0.8) : Colors.red.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Tab Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xff121212),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE5BCE7), Color(0xFFD4A5D6)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.white54,
+                  labelStyle: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Holdings'),
+                    Tab(text: 'Watchlist'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Tab Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Holdings Tab
+                  _buildHoldingsTab(),
+                  // Watchlist Tab
+                  _buildWatchlistTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHoldingsTab() {
+    return BlocBuilder<HoldingsBloc, HoldingsState>(
+      builder: (context, state) {
+        if (state is HoldingsLoading) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+          );
+        }
+
+        if (state is HoldingsError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 60,
+                  color: Colors.red.withOpacity(0.7),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  state.message,
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (state is HoldingsLoaded) {
+          if (state.holdings.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Holdings Yet',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start investing to see your assets here',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 100),
+            itemCount: state.holdings.length,
+            itemBuilder: (context, index) {
+              final holding = state.holdings[index];
+              return _buildHoldingCard(holding);
+            },
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildWatchlistTab() {
+    return BlocBuilder<WatchlistBloc, WatchlistState>(
+      builder: (context, state) {
+        if (state is WatchlistLoading) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+          );
+        }
+
+        if (state is WatchlistError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 60,
+                  color: Colors.red.withOpacity(0.7),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  state.message,
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (state is WatchlistLoaded) {
+          if (state.items.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.bookmark_border,
+                    size: 80,
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Watchlist Items',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add stocks to track them here',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 100),
+            itemCount: state.items.length,
+            itemBuilder: (context, index) {
+              final item = state.items[index];
+              return _buildWatchlistCard(item);
+            },
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildHoldingCard(Holding holding) {
+    final currentPrice = holding.currentPrice ?? holding.averagePrice;
+    final currentValue = currentPrice * holding.quantity;
+    final investedValue = holding.averagePrice * holding.quantity;
+    final pnl = currentValue - investedValue;
+    final pnlPercentage = (pnl / investedValue) * 100;
+    final isPositive = pnl >= 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xff121212),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      holding.assetSymbol,
+                      style: const TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      holding.assetName,
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    CurrencyFormatter.formatINR(currentValue),
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 12,
+                        color: isPositive ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${isPositive ? '+' : ''}${pnlPercentage.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isPositive ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Colors.white.withOpacity(0.1),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildInfoItem('Qty', '${holding.quantity.toStringAsFixed(2)}'),
+              _buildInfoItem('Avg Price', CurrencyFormatter.formatINR(holding.averagePrice)),
+              _buildInfoItem('P&L', 
+                '${isPositive ? '+' : ''}${CurrencyFormatter.formatINR(pnl)}',
+                color: isPositive ? Colors.green : Colors.red,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWatchlistCard(WatchlistItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xff121212),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.06),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.assetSymbol,
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.assetName,
+                  style: TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.5),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5BCE7).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              item.assetType.name.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFFE5BCE7),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value, {Color? color}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 11,
+            color: Colors.white.withOpacity(0.5),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: color ?? Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+}
