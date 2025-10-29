@@ -4,6 +4,7 @@ import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/services/yfinance_service.dart';
 import '../core/utils/currency_formatter.dart';
+import 'market_stock_detail_screen.dart';
 import 'dart:developer' as developer;
 import 'dart:async';
 
@@ -58,15 +59,11 @@ const List<Map<String, dynamic>> _assetDefinitions = [
   {'symbol': 'WIPRO', 'name': 'Wipro Limited', 'type': AssetType.stock},
   {'symbol': 'HINDUNILVR', 'name': 'Hindustan Unilever', 'type': AssetType.stock},
   {'symbol': 'LT', 'name': 'Larsen & Toubro', 'type': AssetType.stock},
-  
-  // Crypto (INR pairs)
-  {'symbol': 'BTC', 'name': 'Bitcoin', 'type': AssetType.crypto},
-  {'symbol': 'ETH', 'name': 'Ethereum', 'type': AssetType.crypto},
-  {'symbol': 'BNB', 'name': 'Binance Coin', 'type': AssetType.crypto},
-  
-  // Mutual Funds (Indian)
-  {'symbol': 'SBIN', 'name': 'State Bank of India', 'type': AssetType.mutualFund},
-  {'symbol': 'AXISBANK', 'name': 'Axis Bank', 'type': AssetType.mutualFund},
+  {'symbol': 'SBIN', 'name': 'State Bank of India', 'type': AssetType.stock},
+  {'symbol': 'AXISBANK', 'name': 'Axis Bank', 'type': AssetType.stock},
+  {'symbol': 'BAJFINANCE', 'name': 'Bajaj Finance', 'type': AssetType.stock},
+  {'symbol': 'HCLTECH', 'name': 'HCL Technologies', 'type': AssetType.stock},
+  {'symbol': 'KOTAKBANK', 'name': 'Kotak Mahindra Bank', 'type': AssetType.stock},
 ];
 
 class MarketScreen extends StatefulWidget {
@@ -80,7 +77,6 @@ class _MarketScreenState extends State<MarketScreen> {
   final YFinanceService _apiService = YFinanceService();
   Timer? _refreshTimer;
   
-  AssetType? _selectedFilter;
   String _searchQuery = '';
   
   List<MarketAsset> _marketData = [];
@@ -230,11 +226,6 @@ class _MarketScreenState extends State<MarketScreen> {
   List<MarketAsset> get _filteredAssets {
     var assets = _marketData;
     
-    // Filter by type
-    if (_selectedFilter != null) {
-      assets = assets.where((a) => a.type == _selectedFilter).toList();
-    }
-    
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       assets = assets.where((a) =>
@@ -303,7 +294,7 @@ class _MarketScreenState extends State<MarketScreen> {
                 color: Colors.white,
               ),
               decoration: InputDecoration(
-                hintText: 'Search assets...',
+                hintText: 'Search stocks...',
                 hintStyle: TextStyle(
                   fontFamily: 'ClashDisplay',
                   color: Colors.white.withAlpha((0.5 * 255).round()),
@@ -319,24 +310,6 @@ class _MarketScreenState extends State<MarketScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
-            ),
-          ),
-          
-          // Filter chips
-          SizedBox(
-            height: 50,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildFilterChip('All', null),
-                const SizedBox(width: 8),
-                _buildFilterChip('Stocks', AssetType.stock),
-                const SizedBox(width: 8),
-                _buildFilterChip('Crypto', AssetType.crypto),
-                const SizedBox(width: 8),
-                _buildFilterChip('Mutual Funds', AssetType.mutualFund),
-              ],
             ),
           ),
           
@@ -370,43 +343,21 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, AssetType? type) {
-    final isSelected = _selectedFilter == type;
-    
-    return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFE5BCE7)
-              : const Color(0xff1a1a1a),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFE5BCE7)
-                : Colors.white.withAlpha((0.1 * 255).round()),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAssetCard(MarketAsset asset, bool isInWatchlist, BuildContext context) {
     final isPositive = asset.changePercentage >= 0;
     
     return GestureDetector(
       onTap: () {
-        _showTradeDialog(context, asset);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MarketStockDetailScreen(
+              symbol: asset.symbol,
+              name: asset.name,
+              assetType: asset.type,
+            ),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -447,35 +398,14 @@ class _MarketScreenState extends State<MarketScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        asset.symbol,
-                        style: const TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _getAssetTypeColor(asset.type).withAlpha((0.2 * 255).round()),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          asset.type.displayName,
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: _getAssetTypeColor(asset.type),
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    asset.symbol,
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -555,25 +485,6 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Color _getAssetTypeColor(AssetType type) {
-    switch (type) {
-      case AssetType.stock:
-        return Colors.blue;
-      case AssetType.crypto:
-        return Colors.orange;
-      case AssetType.mutualFund:
-        return Colors.green;
-    }
-  }
-
-  void _showTradeDialog(BuildContext context, MarketAsset asset) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => TradeDialog(asset: asset),
-    );
-  }
   
   Widget _buildLoadingState() {
     return const Center(
