@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.routes';
+import { errorHandler } from './middleware/error.middleware';
 
 const app: Application = express();
 
@@ -30,5 +31,8 @@ app.use((req, res) => {
     message: 'Route not found',
   });
 });
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 export default app;
