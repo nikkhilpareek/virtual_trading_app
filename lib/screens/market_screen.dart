@@ -75,9 +75,13 @@ class MarketScreen extends StatefulWidget {
 
 class _MarketScreenState extends State<MarketScreen> {
   final YFinanceService _apiService = YFinanceService();
+  final TextEditingController _searchController = TextEditingController();
   Timer? _refreshTimer;
+  Timer? _searchDebounce;
   
   String _searchQuery = '';
+  List<MarketAsset> _searchResults = [];
+  bool _isSearching = false;
   
   List<MarketAsset> _marketData = [];
   bool _isLoading = true;
@@ -98,8 +102,59 @@ class _MarketScreenState extends State<MarketScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _refreshTimer?.cancel();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+  
+  Future<void> _performSearch(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isSearching = true;
+    });
+    
+    try {
+      final results = await _apiService.searchStocks(query);
+      
+      // Fetch prices for search results
+      List<MarketAsset> searchAssets = [];
+      for (var result in results.take(10)) { // Limit to 10 results
+        final quote = await _apiService.getStockQuote(result.symbol);
+        if (quote != null) {
+          searchAssets.add(MarketAsset(
+            symbol: quote.symbol,
+            name: quote.name,
+            currentPrice: quote.price,
+            changePercentage: quote.changePercent,
+            type: AssetType.stock,
+            lastUpdated: DateTime.now(),
+          ));
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _searchResults = searchAssets;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      developer.log('Error searching stocks: $e');
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadMarketData({bool silent = false}) async {
@@ -224,17 +279,13 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   List<MarketAsset> get _filteredAssets {
-    var assets = _marketData;
-    
-    // Filter by search query
+    // If searching, return search results
     if (_searchQuery.isNotEmpty) {
-      assets = assets.where((a) =>
-        a.symbol.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        a.name.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList();
+      return _searchResults;
     }
     
-    return assets;
+    // Otherwise return the default market data
+    return _marketData;
   }
 
   @override
@@ -288,21 +339,59 @@ class _MarketScreenState extends State<MarketScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+                
+                // Debounce search
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+                  _performSearch(value);
+                });
+              },
               style: const TextStyle(
                 fontFamily: 'ClashDisplay',
                 color: Colors.white,
               ),
               decoration: InputDecoration(
-                hintText: 'Search stocks...',
+                hintText: 'Search any stock (e.g., ANGELONE, ZOMATO)...',
                 hintStyle: TextStyle(
                   fontFamily: 'ClashDisplay',
+                  fontSize: 13,
                   color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.white.withAlpha((0.5 * 255).round()),
-                ),
+                prefixIcon: _isSearching
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5BCE7)),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.search,
+                        color: Colors.white.withAlpha((0.5 * 255).round()),
+                      ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                            _searchResults = [];
+                            _isSearching = false;
+                          });
+                          _searchDebounce?.cancel();
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: const Color(0xff1a1a1a),
                 border: OutlineInputBorder(
@@ -319,6 +408,40 @@ class _MarketScreenState extends State<MarketScreen> {
           Expanded(
             child: BlocBuilder<WatchlistBloc, WatchlistState>(
               builder: (context, watchlistState) {
+                if (_filteredAssets.isEmpty && _searchQuery.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.white.withAlpha((0.3 * 255).round()),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No stocks found',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try searching with a different keyword',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            color: Colors.white.withAlpha((0.5 * 255).round()),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   itemCount: _filteredAssets.length,

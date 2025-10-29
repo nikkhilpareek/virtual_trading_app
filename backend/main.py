@@ -152,12 +152,12 @@ def get_batch_quotes(symbols: str):
     return {"stocks": result, "count": len(result)}
 
 @app.get("/search/{query}")
-def search_stocks(query: str):
+def search_stocks(query: str, limit: int = 20):
     """
-    Search for stocks (simplified version)
-    Returns common Indian stocks matching the query
+    Search for Indian stocks by symbol or name
+    Returns matching stocks from NSE/BSE
     """
-    # Common Indian stocks database (simplified)
+    # Expanded Indian stocks database with NSE listings
     stocks_db = {
         "RELIANCE": "Reliance Industries Ltd",
         "TCS": "Tata Consultancy Services",
@@ -177,19 +177,67 @@ def search_stocks(query: str):
         "TITAN": "Titan Company Ltd",
         "NESTLEIND": "Nestle India Ltd",
         "ADANIENT": "Adani Enterprises Ltd",
+        "ADANIPORTS": "Adani Ports & SEZ Ltd",
+        "ADANIGREEN": "Adani Green Energy Ltd",
         "POWERGRID": "Power Grid Corporation",
         "NTPC": "NTPC Ltd",
+        "BAJFINANCE": "Bajaj Finance Ltd",
+        "BAJAJFINSV": "Bajaj Finserv Ltd",
+        "HCLTECH": "HCL Technologies Ltd",
+        "TECHM": "Tech Mahindra Ltd",
+        "ULTRACEMCO": "UltraTech Cement Ltd",
+        "SUNPHARMA": "Sun Pharmaceutical",
+        "DRREDDY": "Dr. Reddy's Laboratories",
+        "CIPLA": "Cipla Ltd",
+        "DIVISLAB": "Divi's Laboratories",
+        "TATASTEEL": "Tata Steel Ltd",
+        "JSWSTEEL": "JSW Steel Ltd",
+        "HINDALCO": "Hindalco Industries",
+        "VEDL": "Vedanta Ltd",
+        "COALINDIA": "Coal India Ltd",
+        "ONGC": "Oil & Natural Gas Corp",
+        "BPCL": "Bharat Petroleum",
+        "IOC": "Indian Oil Corporation",
+        "GRASIM": "Grasim Industries",
+        "TATAMOTORS": "Tata Motors Ltd",
+        "M&M": "Mahindra & Mahindra",
+        "EICHERMOT": "Eicher Motors Ltd",
+        "HEROMOTOCO": "Hero MotoCorp Ltd",
+        "BAJAJ-AUTO": "Bajaj Auto Ltd",
+        "INDUSINDBK": "IndusInd Bank Ltd",
+        "BANDHANBNK": "Bandhan Bank Ltd",
+        "SHRIRAMFIN": "Shriram Finance Ltd",
+        "ANGELONE": "Angel One Ltd",
+        "ICICIGI": "ICICI Lombard General Insurance",
+        "SBILIFE": "SBI Life Insurance",
+        "HDFCLIFE": "HDFC Life Insurance",
+        "BRITANNIA": "Britannia Industries",
+        "DABUR": "Dabur India Ltd",
+        "GODREJCP": "Godrej Consumer Products",
+        "TATACONSUM": "Tata Consumer Products",
+        "TATAPOWER": "Tata Power Company",
+        "DLF": "DLF Ltd",
+        "GODREJPROP": "Godrej Properties",
+        "ZOMATO": "Zomato Ltd",
+        "NYKAA": "FSN E-Commerce (Nykaa)",
+        "PAYTM": "One97 Communications (Paytm)",
+        "POLICYBZR": "PB Fintech (PolicyBazaar)",
     }
     
     query_upper = query.upper()
     matches = []
     
+    # Search in stocks database
     for symbol, name in stocks_db.items():
         if query_upper in symbol or query_upper in name.upper():
             matches.append({
                 "symbol": symbol,
                 "name": name,
-                "type": "stock"
+                "type": "stock",
+                "exchange": "NSE"
             })
+            
+            if len(matches) >= limit:
+                break
     
     return {"results": matches, "count": len(matches)}
