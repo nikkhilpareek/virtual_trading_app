@@ -1,0 +1,16 @@
+{
+  "name": "crypto-auth-api",
+  "version": "1.0.0",
+  "description": "Authentication service for crypto trading platform",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "keywords": ["authentication", "jwt", "crypto", "api"],
+  "author": "",
+  "license": "MIT"
+}
