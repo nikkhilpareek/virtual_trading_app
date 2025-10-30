@@ -198,7 +198,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-Widget _buildTopPerformers() {
+Widget _buildTopPerformers(BuildContext context) {
   // Mock NSE top performers
   final List<Map<String, Object>> topStocks = [
     {
@@ -237,6 +237,7 @@ Widget _buildTopPerformers() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Title
         Text(
           'Top Performer of the Week',
           style: TextStyle(
@@ -247,101 +248,128 @@ Widget _buildTopPerformers() {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 96,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: topStocks.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final s = topStocks[index];
-              final symbol = s['symbol'] as String;
-              final name = s['name'] as String;
-              final price = s['price'] as double;
-              final change = s['change'] as double;
-              final positive = change >= 0;
+        // Vertical list showing only top 5, shrink-wrapped so the outer container
+        // sizes itself exactly to the list contents (no extra bottom space).
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: topStocks.length > 5 ? 5 : topStocks.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final s = topStocks[index];
+            final symbol = s['symbol'] as String;
+            final name = s['name'] as String;
+            final price = s['price'] as double;
+            final change = s['change'] as double;
+            final positive = change >= 0;
 
-              return Container(
-                width: 220,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xff121212),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.white.withAlpha((0.04 * 255).round()),
-                    width: 1,
-                  ),
+            return Container(
+              // let the item take available width in vertical list
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xff121212),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withAlpha((0.04 * 255).round()),
+                  width: 1,
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: (positive ? Colors.green : Colors.red).withAlpha(
-                          (0.12 * 255).round(),
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: (positive ? Colors.green : Colors.red).withAlpha(
+                        (0.12 * 255).round(),
                       ),
-                      child: Center(
-                        child: Text(
-                          symbol,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        symbol,
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: positive ? Colors.green : Colors.red,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.formatINR(price),
                           style: TextStyle(
                             fontFamily: 'ClashDisplay',
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: positive ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontFamily: 'ClashDisplay',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            CurrencyFormatter.formatINR(price),
-                            style: TextStyle(
-                              fontFamily: 'ClashDisplay',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withAlpha(
-                                (0.7 * 255).round(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${positive ? '+' : ''}${change.toStringAsFixed(2)}%',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: positive ? Colors.green : Colors.red,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${positive ? '+' : ''}${change.toStringAsFixed(2)}%',
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: positive ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              );
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 12),
+        // Centered See more button at the bottom of the same container
+        Center(
+          child: TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('See more clicked')));
             },
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFE5BCE7),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'See more',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ],
@@ -703,12 +731,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               const SizedBox(height: 16),
-              _buildTopPerformers(),
-              const SizedBox(height: 16),
-              _buildTopPerformers(), const SizedBox(height: 16),
-              _buildTopPerformers(), const SizedBox(height: 16),
-              _buildTopPerformers(), const SizedBox(height: 16),
-              _buildTopPerformers(),
+              _buildTopPerformers(context),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -942,7 +966,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        
       ],
     );
   }
