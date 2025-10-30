@@ -112,7 +112,7 @@ class _LearnScreenState extends State<LearnScreen> {
                                 color: const Color(0xff121212),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.06),
+                                  color: Colors.white.withAlpha((0.06 * 255).round()),
                                 ),
                               ),
                               child: Row(
@@ -204,39 +204,39 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  const _CategoryChip({required this.label});
+// class _CategoryChip extends StatelessWidget {
+//   final String label;
+//   const _CategoryChip({required this.label});
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: GestureDetector(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Filter: $label')));
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xff121212),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'ClashDisplay',
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.only(right: 8.0),
+//       child: GestureDetector(
+//         onTap: () {
+//           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Filter: $label')));
+//         },
+//         child: Container(
+//           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+//           decoration: BoxDecoration(
+//             color: const Color(0xff121212),
+//             borderRadius: BorderRadius.circular(24),
+//             border: Border.all(color: Colors.white.withOpacity(0.06)),
+//           ),
+//           child: Text(
+//             label,
+//             style: const TextStyle(
+//               fontFamily: 'ClashDisplay',
+//               color: Colors.white70,
+//               fontSize: 13,
+//               fontWeight: FontWeight.w500,
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class _LessonCard extends StatelessWidget {
   final Lesson lesson;
@@ -258,7 +258,7 @@ class _LessonCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xff121212),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+            border: Border.all(color: Colors.white.withAlpha((0.04 * 255).round())),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +302,7 @@ class _LessonCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5BCE7).withOpacity(0.12),
+                      color: const Color(0xFFE5BCE7).withAlpha((0.12 * 255).round()),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
