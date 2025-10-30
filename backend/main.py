@@ -4,10 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from datetime import datetime
 import logging
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Create a custom session with headers to avoid blocking
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+})
 
 app = FastAPI(title="Stonks Trading API", version="1.0.0")
 
@@ -26,10 +33,7 @@ def get_stock_data(symbol: str, suffix: str = ".NS"):
         logger.info(f"Fetching data for: {ticker}")
         
         # Create ticker with custom session to avoid rate limiting
-        stock = yf.Ticker(ticker)
-        
-        # Set custom headers to avoid blocking
-        stock.session.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        stock = yf.Ticker(ticker, session=session)
         
         # Get latest data with timeout
         hist = stock.history(period="5d", timeout=10)
