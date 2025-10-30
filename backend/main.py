@@ -25,7 +25,11 @@ def get_stock_data(symbol: str, suffix: str = ".NS"):
         ticker = f"{symbol}{suffix}"
         logger.info(f"Fetching data for: {ticker}")
         
+        # Create ticker with custom session to avoid rate limiting
         stock = yf.Ticker(ticker)
+        
+        # Set custom headers to avoid blocking
+        stock.session.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         
         # Get latest data with timeout
         hist = stock.history(period="5d", timeout=10)
