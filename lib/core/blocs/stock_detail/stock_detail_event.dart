@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../../models/holding.dart';
-import '../../models/transaction.dart';
+// import '../../models/holding.dart';
+// import '../../models/transaction.dart';
 
 /// Stock Detail Events
 abstract class StockDetailEvent extends Equatable {

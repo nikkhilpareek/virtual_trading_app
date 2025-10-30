@@ -80,15 +80,15 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFFE5BCE7).withOpacity(0.1),
-                          const Color(0xFFD4A5D6).withOpacity(0.05),
+                          const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
+                          const Color(0xFFD4A5D6).withAlpha((0.05 * 255).round()),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withAlpha((0.1 * 255).round()),
                       ),
                     ),
                     child: Column(
@@ -100,7 +100,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                             fontFamily: 'ClashDisplay',
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withAlpha((0.6 * 255).round()),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -138,7 +138,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: isPositive ? Colors.green.withOpacity(0.8) : Colors.red.withOpacity(0.8),
+                                color: isPositive ? Colors.green.withAlpha((0.8 * 255).round()) : Colors.red.withAlpha((0.8 * 255).round()),
                               ),
                             ),
                           ],
@@ -221,7 +221,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                 Icon(
                   Icons.error_outline,
                   size: 60,
-                  color: Colors.red.withOpacity(0.7),
+                  color: Colors.red.withAlpha((0.7 * 255).round()),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -246,7 +246,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                   Icon(
                     Icons.inventory_2_outlined,
                     size: 80,
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withAlpha((0.3 * 255).round()),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -255,7 +255,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                       fontFamily: 'ClashDisplay',
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withAlpha((0.7 * 255).round()),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -264,7 +264,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha((0.5* 255).round()),
                     ),
                   ),
                 ],
@@ -304,7 +304,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                 Icon(
                   Icons.error_outline,
                   size: 60,
-                  color: Colors.red.withOpacity(0.7),
+                  color: Colors.red.withAlpha((0.7 * 255).round()),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -329,7 +329,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                   Icon(
                     Icons.bookmark_border,
                     size: 80,
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withAlpha((0.3 * 255).round()),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -338,7 +338,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                       fontFamily: 'ClashDisplay',
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withAlpha((0.7 * 255).round()),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -347,7 +347,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha((0.5* 255).round()),
                     ),
                   ),
                 ],
@@ -394,7 +394,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
           color: const Color(0xff121212),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withAlpha((0.06 * 255).round()),
           ),
         ),
         child: Column(
@@ -422,7 +422,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                       style: TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withAlpha((0.5 * 255).round()),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -473,7 +473,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  Colors.white.withOpacity(0.1),
+                  Colors.white.withAlpha((0.1 * 255).round()),
                   Colors.transparent,
                 ],
               ),
@@ -483,7 +483,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildInfoItem('Qty', '${holding.quantity.toStringAsFixed(2)}'),
+              _buildInfoItem('Qty', holding.quantity.toStringAsFixed(2)),
               _buildInfoItem('Avg Price', CurrencyFormatter.formatINR(holding.averagePrice)),
               _buildInfoItem('P&L', 
                 '${isPositive ? '+' : ''}${CurrencyFormatter.formatINR(pnl)}',
@@ -505,7 +505,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
         color: const Color(0xff121212),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withAlpha((0.06 * 255).round()),
         ),
       ),
       child: Row(
@@ -529,7 +529,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                   style: TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -540,7 +540,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFE5BCE7).withOpacity(0.15),
+              color: const Color(0xFFE5BCE7).withAlpha((0.15 * 255).round()),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -567,7 +567,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
           style: TextStyle(
             fontFamily: 'ClashDisplay',
             fontSize: 11,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withAlpha((0.5 * 255).round()),
           ),
         ),
         const SizedBox(height: 4),
