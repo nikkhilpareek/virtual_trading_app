@@ -3,18 +3,6 @@ import yfinance as yf
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from datetime import datetime
-import logging
-import requests
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Create a custom session with headers to avoid blocking
-session = requests.Session()
-session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-})
 
 app = FastAPI(title="Stonks Trading API", version="1.0.0")
 
@@ -30,20 +18,14 @@ def get_stock_data(symbol: str, suffix: str = ".NS"):
     """Helper function to fetch stock data with error handling"""
     try:
         ticker = f"{symbol}{suffix}"
-        logger.info(f"Fetching data for: {ticker}")
+        stock = yf.Ticker(ticker)
         
-        # Create ticker with custom session to avoid rate limiting
-        stock = yf.Ticker(ticker, session=session)
-        
-        # Get latest data with timeout
-        hist = stock.history(period="5d", timeout=10)
-        
+        # Get latest data
+        hist = stock.history(period="5d")
         if hist.empty:
-            logger.warning(f"No data returned for {ticker}")
             return None
-        
-        logger.info(f"Successfully fetched {len(hist)} days of data for {ticker}")
-        
+            
+        info = stock.info
         latest = hist.iloc[-1]
         previous = hist.iloc[-2] if len(hist) > 1 else latest
         
@@ -51,14 +33,6 @@ def get_stock_data(symbol: str, suffix: str = ".NS"):
         previous_close = float(previous['Close'])
         change = current_price - previous_close
         change_percent = (change / previous_close * 100) if previous_close > 0 else 0.0
-        
-        # Try to get info, but don't fail if it's not available
-        try:
-            info = stock.info
-            stock_name = info.get('longName', symbol.upper())
-        except Exception as info_error:
-            logger.warning(f"Could not fetch info for {ticker}: {info_error}")
-            stock_name = symbol.upper()
         
         return {
             "symbol": symbol.upper(),
@@ -71,10 +45,10 @@ def get_stock_data(symbol: str, suffix: str = ".NS"):
             "high": round(float(latest['High']), 2),
             "low": round(float(latest['Low']), 2),
             "latestTradingDay": latest.name.strftime('%Y-%m-%d'),
-            "name": stock_name,
+            "name": info.get('longName', symbol.upper()),
         }
     except Exception as e:
-        logger.error(f"Error fetching {symbol}{suffix}: {str(e)}")
+        print(f"Error fetching {symbol}: {str(e)}")
         return None
 
 @app.get("/")
@@ -153,28 +127,13 @@ def get_top_stocks():
     tickers = ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", 
                "HINDUNILVR", "BHARTIARTL", "ITC", "SBIN", "LT"]
     result = []
-    errors = []
-    
-    logger.info(f"Fetching top stocks: {tickers}")
     
     for symbol in tickers:
-        try:
-            data = get_stock_data(symbol, ".NS")
-            if data:
-                result.append(data)
-            else:
-                errors.append(symbol)
-        except Exception as e:
-            logger.error(f"Failed to fetch {symbol}: {e}")
-            errors.append(symbol)
+        data = get_stock_data(symbol, ".NS")
+        if data:
+            result.append(data)
     
-    logger.info(f"Successfully fetched {len(result)} stocks, failed: {len(errors)}")
-    
-    return {
-        "stocks": result,
-        "count": len(result),
-        "failed": errors if errors else None
-    }
+    return {"stocks": result}
 
 @app.get("/batch")
 def get_batch_quotes(symbols: str):
