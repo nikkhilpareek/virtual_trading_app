@@ -242,11 +242,11 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                       color: const Color(0xff121212),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withAlpha((0.06 * 255).round()),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFE5BCE7).withOpacity(0.1),
+                          color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
                           blurRadius: 20,
                           offset: const Offset(0, 4),
                         ),
@@ -265,7 +265,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE5BCE7).withOpacity(0.15),
+                                color: const Color(0xFFE5BCE7).withAlpha((0.15 * 255).round()),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -289,7 +289,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                             gradient: LinearGradient(
                               colors: [
                                 Colors.transparent,
-                                Colors.white.withOpacity(0.1),
+                                Colors.white.withAlpha((0.1 * 255).round()),
                                 Colors.transparent,
                               ],
                             ),
@@ -303,7 +303,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE5BCE7).withOpacity(0.1),
+                                color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -366,15 +366,15 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          const Color(0xFFE5BCE7).withOpacity(0.8),
-                                          const Color(0xFFD4A5D6).withOpacity(0.8),
+                                          const Color(0xFFE5BCE7).withAlpha((0.8 * 255).round()),
+                                          const Color(0xFFD4A5D6).withAlpha((0.8 * 255).round()),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         if (_isSpeaking)
                                           BoxShadow(
-                                            color: const Color(0xFFE5BCE7).withOpacity(0.3),
+                                            color: const Color(0xFFE5BCE7).withAlpha((0.3 * 255).round()),
                                             blurRadius: 8,
                                             offset: const Offset(0, 2),
                                           ),
@@ -398,10 +398,10 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.redAccent.withOpacity(0.1),
+                                        color: Colors.redAccent.withAlpha((0.1 * 255).round()),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: Colors.redAccent.withOpacity(0.3),
+                                          color: Colors.redAccent.withAlpha((0.3 * 255).round()),
                                         ),
                                       ),
                                       child: const Icon(
@@ -476,7 +476,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                         horizontalRuleDecoration: BoxDecoration(
                           border: Border(
                             top: BorderSide(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withAlpha((0.1 * 255).round()),
                               width: 1,
                             ),
                           ),
@@ -493,7 +493,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                       color: const Color(0xff0a0a0a),
                       border: Border(
                         top: BorderSide(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withAlpha((0.1 * 255).round()),
                           width: 1,
                         ),
                       ),
@@ -517,7 +517,7 @@ Understanding ${widget.lesson.title.toLowerCase()} is crucial for anyone looking
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE5BCE7).withOpacity(0.3),
+                                color: const Color(0xFFE5BCE7).withAlpha((0.3 * 255).round()),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
