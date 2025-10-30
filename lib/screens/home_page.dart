@@ -4,7 +4,7 @@ import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
 import 'market_screen.dart';
-import 'watchlist_screen.dart';
+import 'assets_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'learn_screen.dart';
@@ -29,9 +29,19 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     _screens = [
-      const WatchlistScreen(),
+      const AssetsScreen(),
       const MarketScreen(),
-      DashboardScreen(userName: widget.userName),
+      DashboardScreen(
+        userName: widget.userName,
+        onNavigateToTab: (index) {
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+          );
+          setState(() => _currentIndex = index);
+        },
+      ),
       const LearnScreen(),
       const CryptoScreen(),
     ];
@@ -62,9 +72,9 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBottomNavigationBar() {
     final items = [
       {
-        'icon': Icons.bookmark_border,
-        'active': Icons.bookmark,
-        'label': 'Watchlist',
+        'icon': Icons.account_balance_wallet_outlined,
+        'active': Icons.account_balance_wallet,
+        'label': 'Assets',
       },
       {
         'icon': Icons.trending_up,
@@ -342,8 +352,13 @@ Widget _buildTopPerformers() {
 // Dashboard Screen (Home Tab)
 class DashboardScreen extends StatefulWidget {
   final String userName;
+  final Function(int)? onNavigateToTab;
 
-  const DashboardScreen({super.key, required this.userName});
+  const DashboardScreen({
+    super.key,
+    required this.userName,
+    this.onNavigateToTab,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -907,13 +922,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Icons.add_shopping_cart,
                 const Color(0xFFE5BCE7),
                 () {
-                  // Handle buy action
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Navigate to Market tab to buy assets'),
-                      backgroundColor: Color(0xFFE5BCE7),
-                    ),
-                  );
+                  // Navigate to Market tab (index 1)
+                  widget.onNavigateToTab?.call(1);
                 },
               ),
             ),
@@ -924,13 +934,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Icons.remove_shopping_cart,
                 Colors.red,
                 () {
-                  // Handle sell action
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Navigate to Watchlist to sell assets'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  // Navigate to Watchlist tab (index 0)
+                  widget.onNavigateToTab?.call(0);
                 },
               ),
             ),

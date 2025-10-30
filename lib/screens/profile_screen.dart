@@ -6,8 +6,20 @@ import '../core/blocs/blocs.dart';
 import '../auth/auth_gate.dart';
 import '../core/utils/currency_formatter.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load holdings when profile screen is opened
+    context.read<HoldingsBloc>().add(const LoadHoldings());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +37,6 @@ class ProfileScreen extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => _showEditProfileDialog(context),
-            icon: const Icon(Icons.edit, color: Colors.white),
-          ),
-        ],
       ),
       body: BlocBuilder<UserBloc, UserState>(
         builder: (context, state) {
@@ -101,6 +107,9 @@ class ProfileScreen extends StatelessWidget {
               color: const Color(0xFFE5BCE7),
               onRefresh: () async {
                 context.read<UserBloc>().add(const RefreshUserProfile());
+                context.read<HoldingsBloc>().add(const RefreshHoldings());
+                // Wait a bit for the data to load
+                await Future.delayed(const Duration(milliseconds: 500));
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -138,11 +147,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     
                     const SizedBox(height: 32),
-                    
-                    // Stonk Balance Card
-                    _buildBalanceCard(profile.stonkBalance),
-                    
-                    const SizedBox(height: 24),
                     
                     // Portfolio Stats
                     _buildPortfolioStats(context),
@@ -257,62 +261,6 @@ class ProfileScreen extends StatelessWidget {
         Icons.person,
         size: 60,
         color: Color(0xFFE5BCE7),
-      ),
-    );
-  }
-
-  Widget _buildBalanceCard(double balance) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE5BCE7), Color(0xFFB88FBA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE5BCE7).withAlpha((0.3 * 255).round()),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Available Balance',
-            style: TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            CurrencyFormatter.formatINR(balance),
-            style: const TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontSize: 36,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Indian Rupees',
-            style: TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black.withAlpha((0.6 * 255).round()),
-            ),
-          ),
-        ],
       ),
     );
   }

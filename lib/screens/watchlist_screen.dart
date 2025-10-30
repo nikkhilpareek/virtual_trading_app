@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:virtual_trading_app/screens/market_screen.dart';
+import 'market_stock_detail_screen.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
@@ -233,15 +234,28 @@ class WatchlistScreen extends StatelessWidget {
     final mockChange = _getMockChange(item.assetSymbol);
     final isPositive = mockChange >= 0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xff1a1a1a),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
-      ),
-      child: Row(
-        children: [
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MarketStockDetailScreen(
+              symbol: item.assetSymbol,
+              name: item.assetName,
+              assetType: item.assetType,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xff1a1a1a),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
+        ),
+        child: Row(
+          children: [
           // Asset icon
           Container(
             width: 48,
@@ -361,15 +375,28 @@ class WatchlistScreen extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Remove button
-          IconButton(
-            onPressed: () {
-              // Show confirmation dialog
-              _showRemoveDialog(context, item);
+          // Watchlist bookmark button
+          BlocBuilder<WatchlistBloc, WatchlistState>(
+            builder: (context, state) {
+              return IconButton(
+                onPressed: () {
+                  context.read<WatchlistBloc>().add(
+                    ToggleWatchlist(
+                      assetSymbol: item.assetSymbol,
+                      assetName: item.assetName,
+                      assetType: item.assetType,
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.bookmark,
+                  color: Color(0xFFE5BCE7),
+                ),
+              );
             },
-            icon: Icon(Icons.bookmark, color: const Color(0xFFE5BCE7)),
           ),
         ],
+      ),
       ),
     );
   }
@@ -419,58 +446,5 @@ class WatchlistScreen extends StatelessWidget {
       'FXAIX': 0.48,
     };
     return changes[symbol] ?? 0.0;
-  }
-
-  void _showRemoveDialog(BuildContext context, WatchlistItem item) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Remove from Watchlist?',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'Do you want to remove ${item.assetSymbol} from your watchlist?',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white.withAlpha((0.7 * 255).round()),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white.withAlpha((0.5 * 255).round()),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              context.read<WatchlistBloc>().add(
-                RemoveFromWatchlist(item.assetSymbol),
-              );
-              Navigator.pop(dialogContext);
-            },
-            child: const Text(
-              'Remove',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

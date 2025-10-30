@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
-import '../core/services/alpha_vantage_service.dart';
+import '../core/services/yfinance_service.dart';
 import '../core/utils/currency_formatter.dart';
+import 'market_stock_detail_screen.dart';
 import 'dart:developer' as developer;
+import 'dart:async';
 
 // Market asset data model with real-time prices
 class MarketAsset {
@@ -43,27 +45,25 @@ class MarketAsset {
   }
 }
 
-// Asset definitions for Indian Market (NSE/BSE)
-// Prices will be fetched from Alpha Vantage API
+// Asset definitions for Indian Market (NSE)
+// Prices will be fetched from YFinance API via FastAPI backend
 const List<Map<String, dynamic>> _assetDefinitions = [
-  // Indian Stocks (NSE/BSE)
-  {'symbol': 'RELIANCE.BSE', 'name': 'Reliance Industries', 'type': AssetType.stock},
-  {'symbol': 'TCS.BSE', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
-  {'symbol': 'INFY.BSE', 'name': 'Infosys Limited', 'type': AssetType.stock},
-  {'symbol': 'HDFCBANK.BSE', 'name': 'HDFC Bank', 'type': AssetType.stock},
-  {'symbol': 'ICICIBANK.BSE', 'name': 'ICICI Bank', 'type': AssetType.stock},
-  {'symbol': 'BHARTIARTL.BSE', 'name': 'Bharti Airtel', 'type': AssetType.stock},
-  {'symbol': 'ITC.BSE', 'name': 'ITC Limited', 'type': AssetType.stock},
-  {'symbol': 'WIPRO.BSE', 'name': 'Wipro Limited', 'type': AssetType.stock},
-  
-  // Crypto (INR pairs)
-  {'symbol': 'BTC', 'name': 'Bitcoin', 'type': AssetType.crypto},
-  {'symbol': 'ETH', 'name': 'Ethereum', 'type': AssetType.crypto},
-  {'symbol': 'BNB', 'name': 'Binance Coin', 'type': AssetType.crypto},
-  
-  // Mutual Funds (Indian)
-  {'symbol': 'SBI.BSE', 'name': 'SBI Mutual Fund', 'type': AssetType.mutualFund},
-  {'symbol': 'AXIS.BSE', 'name': 'Axis Mutual Fund', 'type': AssetType.mutualFund},
+  // Indian Stocks (NSE)
+  {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'type': AssetType.stock},
+  {'symbol': 'TCS', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
+  {'symbol': 'INFY', 'name': 'Infosys Limited', 'type': AssetType.stock},
+  {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'type': AssetType.stock},
+  {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'type': AssetType.stock},
+  {'symbol': 'BHARTIARTL', 'name': 'Bharti Airtel', 'type': AssetType.stock},
+  {'symbol': 'ITC', 'name': 'ITC Limited', 'type': AssetType.stock},
+  {'symbol': 'WIPRO', 'name': 'Wipro Limited', 'type': AssetType.stock},
+  {'symbol': 'HINDUNILVR', 'name': 'Hindustan Unilever', 'type': AssetType.stock},
+  {'symbol': 'LT', 'name': 'Larsen & Toubro', 'type': AssetType.stock},
+  {'symbol': 'SBIN', 'name': 'State Bank of India', 'type': AssetType.stock},
+  {'symbol': 'AXISBANK', 'name': 'Axis Bank', 'type': AssetType.stock},
+  {'symbol': 'BAJFINANCE', 'name': 'Bajaj Finance', 'type': AssetType.stock},
+  {'symbol': 'HCLTECH', 'name': 'HCL Technologies', 'type': AssetType.stock},
+  {'symbol': 'KOTAKBANK', 'name': 'Kotak Mahindra Bank', 'type': AssetType.stock},
 ];
 
 class MarketScreen extends StatefulWidget {
@@ -74,10 +74,14 @@ class MarketScreen extends StatefulWidget {
 }
 
 class _MarketScreenState extends State<MarketScreen> {
-  final AlphaVantageService _apiService = AlphaVantageService();
+  final YFinanceService _apiService = YFinanceService();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _refreshTimer;
+  Timer? _searchDebounce;
   
-  AssetType? _selectedFilter;
   String _searchQuery = '';
+  List<MarketAsset> _searchResults = [];
+  bool _isSearching = false;
   
   List<MarketAsset> _marketData = [];
   bool _isLoading = true;
@@ -88,13 +92,80 @@ class _MarketScreenState extends State<MarketScreen> {
   void initState() {
     super.initState();
     _loadMarketData();
+    // Start continuous refresh every 5 seconds (not 1 second to avoid overwhelming the API)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!_isLoading) {
+        _loadMarketData(silent: true);
+      }
+    });
   }
 
-  Future<void> _loadMarketData() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _refreshTimer?.cancel();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+  
+  Future<void> _performSearch(String query) async {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+    
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _isSearching = true;
     });
+    
+    try {
+      final results = await _apiService.searchStocks(query);
+      
+      // Fetch prices for search results
+      List<MarketAsset> searchAssets = [];
+      for (var result in results.take(10)) { // Limit to 10 results
+        final quote = await _apiService.getStockQuote(result.symbol);
+        if (quote != null) {
+          searchAssets.add(MarketAsset(
+            symbol: quote.symbol,
+            name: quote.name,
+            currentPrice: quote.price,
+            changePercentage: quote.changePercent,
+            type: AssetType.stock,
+            lastUpdated: DateTime.now(),
+          ));
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _searchResults = searchAssets;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      developer.log('Error searching stocks: $e');
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMarketData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
+
+    developer.log('Starting to load market data... (silent: $silent)', name: 'MarketScreen');
 
     try {
       final List<MarketAsset> assets = [];
@@ -105,11 +176,15 @@ class _MarketScreenState extends State<MarketScreen> {
           .map((a) => a['symbol'] as String)
           .toList();
 
+      developer.log('Loading ${stockSymbols.length} stocks', name: 'MarketScreen');
+
       for (final symbol in stockSymbols) {
         final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
         try {
+          developer.log('Fetching quote for $symbol...', name: 'MarketScreen');
           final quote = await _apiService.getStockQuote(symbol);
           if (quote != null) {
+            developer.log('Got quote for $symbol: ${quote.price}', name: 'MarketScreen');
             assets.add(MarketAsset(
               symbol: symbol,
               name: assetDef['name'] as String,
@@ -118,13 +193,11 @@ class _MarketScreenState extends State<MarketScreen> {
               type: AssetType.stock,
               lastUpdated: DateTime.now(),
             ));
+          } else {
+            developer.log('Quote was null for $symbol', name: 'MarketScreen');
           }
-          
-          // Small delay to avoid rate limiting
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading stock $symbol', name: 'MarketScreen', error: e, stackTrace: st);
-
         }
       }
 
@@ -148,15 +221,12 @@ class _MarketScreenState extends State<MarketScreen> {
               lastUpdated: DateTime.now(),
             ));
           }
-          
-          // Small delay to avoid rate limiting
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading crypto $symbol', name: 'MarketScreen', error: e, stackTrace:st);
         }
       }
 
-      // Load mutual funds (fallback to placeholder since Alpha Vantage may not support all)
+      // Load mutual funds (using stock quotes from YFinance)
       final mutualFundSymbols = _assetDefinitions
           .where((a) => a['type'] == AssetType.mutualFund)
           .toList();
@@ -174,8 +244,6 @@ class _MarketScreenState extends State<MarketScreen> {
               lastUpdated: DateTime.now(),
             ));
           }
-          
-          await Future.delayed(const Duration(milliseconds: 600));
         } catch (e,st) {
           developer.log('Error loading mutual fund ${assetDef['symbol']}', name: 'MarketScreen', error: e, stackTrace: st);
           // Add placeholder data for mutual funds if API fails
@@ -195,7 +263,9 @@ class _MarketScreenState extends State<MarketScreen> {
         _isLoading = false;
         _lastRefresh = DateTime.now();
       });
-    } catch (e) {
+      developer.log('Market data loaded successfully: ${assets.length} assets', name: 'MarketScreen');
+    } catch (e, st) {
+      developer.log('Fatal error loading market data', name: 'MarketScreen', error: e, stackTrace: st);
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load market data: $e';
@@ -209,22 +279,13 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   List<MarketAsset> get _filteredAssets {
-    var assets = _marketData;
-    
-    // Filter by type
-    if (_selectedFilter != null) {
-      assets = assets.where((a) => a.type == _selectedFilter).toList();
-    }
-    
-    // Filter by search query
+    // If searching, return search results
     if (_searchQuery.isNotEmpty) {
-      assets = assets.where((a) =>
-        a.symbol.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        a.name.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList();
+      return _searchResults;
     }
     
-    return assets;
+    // Otherwise return the default market data
+    return _marketData;
   }
 
   @override
@@ -278,21 +339,59 @@ class _MarketScreenState extends State<MarketScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+                
+                // Debounce search
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+                  _performSearch(value);
+                });
+              },
               style: const TextStyle(
                 fontFamily: 'ClashDisplay',
                 color: Colors.white,
               ),
               decoration: InputDecoration(
-                hintText: 'Search assets...',
+                hintText: 'Search any stock (e.g., ANGELONE, ZOMATO)...',
                 hintStyle: TextStyle(
                   fontFamily: 'ClashDisplay',
+                  fontSize: 13,
                   color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.white.withAlpha((0.5 * 255).round()),
-                ),
+                prefixIcon: _isSearching
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5BCE7)),
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.search,
+                        color: Colors.white.withAlpha((0.5 * 255).round()),
+                      ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                            _searchResults = [];
+                            _isSearching = false;
+                          });
+                          _searchDebounce?.cancel();
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: const Color(0xff1a1a1a),
                 border: OutlineInputBorder(
@@ -303,30 +402,46 @@ class _MarketScreenState extends State<MarketScreen> {
             ),
           ),
           
-          // Filter chips
-          SizedBox(
-            height: 50,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildFilterChip('All', null),
-                const SizedBox(width: 8),
-                _buildFilterChip('Stocks', AssetType.stock),
-                const SizedBox(width: 8),
-                _buildFilterChip('Crypto', AssetType.crypto),
-                const SizedBox(width: 8),
-                _buildFilterChip('Mutual Funds', AssetType.mutualFund),
-              ],
-            ),
-          ),
-          
           const SizedBox(height: 12),
           
           // Market list
           Expanded(
             child: BlocBuilder<WatchlistBloc, WatchlistState>(
               builder: (context, watchlistState) {
+                if (_filteredAssets.isEmpty && _searchQuery.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.white.withAlpha((0.3 * 255).round()),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No stocks found',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try searching with a different keyword',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            color: Colors.white.withAlpha((0.5 * 255).round()),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   itemCount: _filteredAssets.length,
@@ -351,43 +466,21 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, AssetType? type) {
-    final isSelected = _selectedFilter == type;
-    
-    return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFE5BCE7)
-              : const Color(0xff1a1a1a),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFE5BCE7)
-                : Colors.white.withAlpha((0.1 * 255).round()),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.black : Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAssetCard(MarketAsset asset, bool isInWatchlist, BuildContext context) {
     final isPositive = asset.changePercentage >= 0;
     
     return GestureDetector(
       onTap: () {
-        _showTradeDialog(context, asset);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MarketStockDetailScreen(
+              symbol: asset.symbol,
+              name: asset.name,
+              assetType: asset.type,
+            ),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -428,35 +521,14 @@ class _MarketScreenState extends State<MarketScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        asset.symbol,
-                        style: const TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _getAssetTypeColor(asset.type).withAlpha((0.2 * 255).round()),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          asset.type.displayName,
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: _getAssetTypeColor(asset.type),
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    asset.symbol,
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -536,25 +608,6 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  Color _getAssetTypeColor(AssetType type) {
-    switch (type) {
-      case AssetType.stock:
-        return Colors.blue;
-      case AssetType.crypto:
-        return Colors.orange;
-      case AssetType.mutualFund:
-        return Colors.green;
-    }
-  }
-
-  void _showTradeDialog(BuildContext context, MarketAsset asset) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => TradeDialog(asset: asset),
-    );
-  }
   
   Widget _buildLoadingState() {
     return const Center(
