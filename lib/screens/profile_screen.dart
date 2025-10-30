@@ -426,7 +426,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-              activeColor: const Color(0xFFE5BCE7),
+              activeThumbColor: const Color(0xFFE5BCE7),
             ),
           ),
           Divider(
