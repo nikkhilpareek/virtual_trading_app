@@ -12,7 +12,8 @@ class AssetsScreen extends StatefulWidget {
   State<AssetsScreen> createState() => _AssetsScreenState();
 }
 
-class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderStateMixin {
+class _AssetsScreenState extends State<AssetsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -64,15 +65,20 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
 
                   if (state is HoldingsLoaded) {
                     for (var holding in state.holdings) {
-                      final currentValue = (holding.currentPrice ?? holding.averagePrice) * holding.quantity;
-                      final investedValue = holding.averagePrice * holding.quantity;
+                      final currentValue =
+                          (holding.currentPrice ?? holding.averagePrice) *
+                          holding.quantity;
+                      final investedValue =
+                          holding.averagePrice * holding.quantity;
                       totalValue += currentValue;
                       totalInvested += investedValue;
                     }
                     totalPnL = totalValue - totalInvested;
                   }
 
-                  final pnlPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0.0;
+                  final pnlPercentage = totalInvested > 0
+                      ? (totalPnL / totalInvested) * 100
+                      : 0.0;
                   final isPositive = totalPnL >= 0;
 
                   return Container(
@@ -80,8 +86,12 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
-                          const Color(0xFFD4A5D6).withAlpha((0.05 * 255).round()),
+                          const Color(
+                            0xFFE5BCE7,
+                          ).withAlpha((0.1 * 255).round()),
+                          const Color(
+                            0xFFD4A5D6,
+                          ).withAlpha((0.05 * 255).round()),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -117,7 +127,9 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                         Row(
                           children: [
                             Icon(
-                              isPositive ? Icons.trending_up : Icons.trending_down,
+                              isPositive
+                                  ? Icons.trending_up
+                                  : Icons.trending_down,
                               color: isPositive ? Colors.green : Colors.red,
                               size: 20,
                             ),
@@ -138,7 +150,11 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: isPositive ? Colors.green.withAlpha((0.8 * 255).round()) : Colors.red.withAlpha((0.8 * 255).round()),
+                                color: isPositive
+                                    ? Colors.green.withAlpha(
+                                        (0.8 * 255).round(),
+                                      )
+                                    : Colors.red.withAlpha((0.8 * 255).round()),
                               ),
                             ),
                           ],
@@ -190,6 +206,8 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
             Expanded(
               child: TabBarView(
                 controller: _tabController,
+                // Disable swipe gestures so tabs change only via tapping the TabBar
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   // Holdings Tab
                   _buildHoldingsTab(),
@@ -264,7 +282,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
-                      color: Colors.white.withAlpha((0.5* 255).round()),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                   ),
                 ],
@@ -274,6 +292,11 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
 
           return ListView.builder(
             padding: const EdgeInsets.only(left: 20, right: 20, bottom: 100),
+            // Pre-cache nearby items to make fast scrolls smoother
+            cacheExtent: 800,
+            // Avoid keeping every child alive unnecessarily
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             itemCount: state.holdings.length,
             itemBuilder: (context, index) {
               final holding = state.holdings[index];
@@ -347,7 +370,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 14,
-                      color: Colors.white.withAlpha((0.5* 255).round()),
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
                     ),
                   ),
                 ],
@@ -357,6 +380,9 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
 
           return ListView.builder(
             padding: const EdgeInsets.only(left: 20, right: 20, bottom: 100),
+            cacheExtent: 800,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: true,
             itemCount: state.items.length,
             itemBuilder: (context, index) {
               final item = state.items[index];
@@ -398,101 +424,107 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
           ),
         ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        holding.assetSymbol,
+                        style: const TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        holding.assetName,
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          color: Colors.white.withAlpha((0.5 * 255).round()),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      holding.assetSymbol,
+                      CurrencyFormatter.formatINR(currentValue),
                       style: const TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      holding.assetName,
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 12,
-                        color: Colors.white.withAlpha((0.5 * 255).round()),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Icon(
+                          isPositive
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          size: 12,
+                          color: isPositive ? Colors.green : Colors.red,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${isPositive ? '+' : ''}${pnlPercentage.toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isPositive ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    CurrencyFormatter.formatINR(currentValue),
-                    style: const TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 12,
-                        color: isPositive ? Colors.green : Colors.red,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${isPositive ? '+' : ''}${pnlPercentage.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isPositive ? Colors.green : Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.white.withAlpha((0.1 * 255).round()),
-                  Colors.transparent,
-                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withAlpha((0.1 * 255).round()),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildInfoItem('Qty', holding.quantity.toStringAsFixed(2)),
-              _buildInfoItem('Avg Price', CurrencyFormatter.formatINR(holding.averagePrice)),
-              _buildInfoItem('P&L', 
-                '${isPositive ? '+' : ''}${CurrencyFormatter.formatINR(pnl)}',
-                color: isPositive ? Colors.green : Colors.red,
-              ),
-            ],
-          ),
-        ],
-      ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildInfoItem('Qty', holding.quantity.toStringAsFixed(2)),
+                _buildInfoItem(
+                  'Avg Price',
+                  CurrencyFormatter.formatINR(holding.averagePrice),
+                ),
+                _buildInfoItem(
+                  'P&L',
+                  '${isPositive ? '+' : ''}${CurrencyFormatter.formatINR(pnl)}',
+                  color: isPositive ? Colors.green : Colors.red,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -504,9 +536,7 @@ class _AssetsScreenState extends State<AssetsScreen> with SingleTickerProviderSt
       decoration: BoxDecoration(
         color: const Color(0xff121212),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withAlpha((0.06 * 255).round()),
-        ),
+        border: Border.all(color: Colors.white.withAlpha((0.06 * 255).round())),
       ),
       child: Row(
         children: [
