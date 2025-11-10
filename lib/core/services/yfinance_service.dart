@@ -11,9 +11,9 @@ class YFinanceService {
   // For Real Device: use your computer's IP address (e.g., '192.168.1.100')
   static const String _baseUrl = 'http://10.0.2.2:8000';
   
-  // Cache responses for 3 seconds to allow frequent updates
+  // Cache responses for 30 seconds to improve performance while keeping data fresh
   static final Map<String, CachedQuote> _quoteCache = {};
-  static const Duration _cacheDuration = Duration(seconds: 3);
+  static const Duration _cacheDuration = Duration(seconds: 30);
 
   /// Fetches real-time quote for a stock symbol
   /// Example: RELIANCE, TCS, INFY, HDFCBANK

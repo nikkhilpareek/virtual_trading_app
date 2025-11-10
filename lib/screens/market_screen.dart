@@ -124,11 +124,13 @@ class _MarketScreenState extends State<MarketScreen> {
     try {
       final results = await _apiService.searchStocks(query);
       
-      // Fetch prices for search results
+      // Fetch prices for search results in batch
       List<MarketAsset> searchAssets = [];
-      for (var result in results.take(10)) { // Limit to 10 results
-        final quote = await _apiService.getStockQuote(result.symbol);
-        if (quote != null) {
+      final searchSymbols = results.take(10).map((r) => r.symbol).toList();
+      
+      if (searchSymbols.isNotEmpty) {
+        final quotes = await _apiService.getMultipleStockQuotes(searchSymbols);
+        for (var quote in quotes) {
           searchAssets.add(MarketAsset(
             symbol: quote.symbol,
             name: quote.name,
@@ -178,27 +180,28 @@ class _MarketScreenState extends State<MarketScreen> {
 
       developer.log('Loading ${stockSymbols.length} stocks', name: 'MarketScreen');
 
-      for (final symbol in stockSymbols) {
-        final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
-        try {
-          developer.log('Fetching quote for $symbol...', name: 'MarketScreen');
-          final quote = await _apiService.getStockQuote(symbol);
-          if (quote != null) {
-            developer.log('Got quote for $symbol: ${quote.price}', name: 'MarketScreen');
-            assets.add(MarketAsset(
-              symbol: symbol,
-              name: assetDef['name'] as String,
-              currentPrice: quote.price,
-              changePercentage: quote.changePercent,
-              type: AssetType.stock,
-              lastUpdated: DateTime.now(),
-            ));
-          } else {
-            developer.log('Quote was null for $symbol', name: 'MarketScreen');
-          }
-        } catch (e,st) {
-          developer.log('Error loading stock $symbol', name: 'MarketScreen', error: e, stackTrace: st);
+      // Use batch fetching for better performance
+      try {
+        developer.log('Fetching quotes for ${stockSymbols.length} stocks in batch', name: 'MarketScreen');
+        final quotes = await _apiService.getMultipleStockQuotes(stockSymbols);
+        
+        for (final quote in quotes) {
+          final assetDef = _assetDefinitions.firstWhere(
+            (a) => a['symbol'] == quote.symbol,
+            orElse: () => {'symbol': quote.symbol, 'name': quote.name, 'type': AssetType.stock},
+          );
+          developer.log('Got quote for ${quote.symbol}: ${quote.price}', name: 'MarketScreen');
+          assets.add(MarketAsset(
+            symbol: quote.symbol,
+            name: assetDef['name'] as String,
+            currentPrice: quote.price,
+            changePercentage: quote.changePercent,
+            type: AssetType.stock,
+            lastUpdated: DateTime.now(),
+          ));
         }
+      } catch (e, st) {
+        developer.log('Error loading stocks in batch', name: 'MarketScreen', error: e, stackTrace: st);
       }
 
       // Load crypto
