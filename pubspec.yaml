@@ -97,6 +97,8 @@ flutter:
     - assets/images/
     - assets/data/
     - assets/lessons/
+    # Added icon assets directory for Google sign-in button image and other icons
+    - assets/icon/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
