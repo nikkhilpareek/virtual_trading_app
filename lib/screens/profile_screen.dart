@@ -186,6 +186,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatar(BuildContext context, String? avatarUrl) {
+    // Fallback to Supabase auth metadata if avatarUrl not provided by profile
+    if (avatarUrl == null || avatarUrl.isEmpty) {
+      final user = Supabase.instance.client.auth.currentUser;
+      final meta = user?.userMetadata;
+      if (meta != null) {
+        avatarUrl = (meta['avatar_url'] ?? meta['picture'] ?? meta['avatar']) as String?;
+      }
+    }
+
     return Stack(
       children: [
         Container(
