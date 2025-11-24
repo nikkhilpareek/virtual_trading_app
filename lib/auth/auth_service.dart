@@ -33,9 +33,9 @@ class AuthService {
     try {
       // Web flow URL that Supabase provides
       const webClientId =
-          '795667976174-lgnca1jlcsvaha4c1bljm4clm6906el4.apps.googleusercontent.com'; 
+          '795667976174-lgnca1jlcsvaha4c1bljm4clm6906el4.apps.googleusercontent.com';
       const iosClientId =
-          '795667976174-lgnca1jlcsvaha4c1bljm4clm6906el4.apps.googleusercontent.com'; 
+          '795667976174-lgnca1jlcsvaha4c1bljm4clm6906el4.apps.googleusercontent.com';
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         clientId: iosClientId,
@@ -60,11 +60,33 @@ class AuthService {
       }
 
       // Sign in to Supabase with Google credentials
-      return await _supabase.auth.signInWithIdToken(
+      final response = await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
         accessToken: accessToken,
       );
+
+      // Attempt to persist avatar URL if Supabase user metadata lacks it
+      final currentUser = _supabase.auth.currentUser;
+      final existingMeta = currentUser?.userMetadata ?? {};
+      final googlePhotoUrl = googleUser.photoUrl;
+      if (currentUser != null && googlePhotoUrl != null) {
+        final hasAvatar =
+            existingMeta.containsKey('avatar_url') ||
+            existingMeta.containsKey('avatar') ||
+            existingMeta.containsKey('picture');
+        if (!hasAvatar) {
+          try {
+            await _supabase.auth.updateUser(
+              UserAttributes(data: {'avatar_url': googlePhotoUrl}),
+            );
+          } catch (_) {
+            // Silently ignore avatar update failures
+          }
+        }
+      }
+
+      return response;
     } catch (e) {
       rethrow;
     }
