@@ -61,7 +61,11 @@ dependencies:
   # Text to speech
   flutter_tts: ^4.2.0
   
+  # Authentication
   supabase_flutter: ^2.10.3
+  google_sign_in: ^6.2.2
+  url_launcher: ^6.3.1
+  
   flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:

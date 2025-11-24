@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:virtual_trading_app/auth/auth_service.dart';
 import 'signup.dart';
+import 'forgot_password.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -65,6 +66,45 @@ class _LoginPageState extends State<LoginPage> {
       }
     } finally {
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Google Sign-in method
+  void signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await authService.signInWithGoogle();
+
+      if (response == null) {
+        // User cancelled
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Success - pop back to AuthGate
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google sign-in failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
         setState(() {
           _isLoading = false;
         });
@@ -265,7 +305,12 @@ class _LoginPageState extends State<LoginPage> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // Handle forgot password
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordPage(),
+                          ),
+                        );
                       },
                       child: Text(
                         'Forgot Password?',
@@ -314,6 +359,75 @@ class _LoginPageState extends State<LoginPage> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                    ),
+                  ),
+
+                  SizedBox(height: isCompactScreen ? 24.0 : 32.0),
+
+                  // Divider with "OR"
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withAlpha((0.2 * 255).round()),
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withAlpha((0.5 * 255).round()),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withAlpha((0.2 * 255).round()),
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: isCompactScreen ? 24.0 : 32.0),
+
+                  // Google Sign-in Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : signInWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.white, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: Image.asset(
+                        'assets/icon/google_icon.png',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.login, color: Colors.black);
+                        },
+                      ),
+                      label: const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
                     ),
                   ),
 

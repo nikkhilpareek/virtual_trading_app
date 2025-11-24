@@ -82,12 +82,14 @@ class _SignupPageState extends State<SignupPage> {
         // Show success message briefly before navigating
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Account created successfully! Please check your email to verify.'),
+            content: Text(
+              'Account created successfully! Please check your email to verify.',
+            ),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
         );
-        
+
         // Pop all routes and go back to root (AuthGate)
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
@@ -106,6 +108,45 @@ class _SignupPageState extends State<SignupPage> {
       }
     } finally {
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Google Sign-in method
+  void signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await authService.signInWithGoogle();
+
+      if (response == null) {
+        // User cancelled
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Success - pop back to AuthGate
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google sign-in failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
         setState(() {
           _isLoading = false;
         });
@@ -134,7 +175,7 @@ class _SignupPageState extends State<SignupPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: topPadding),
-                  
+
                   // Title Section
                   Text(
                     'Create your',
@@ -172,9 +213,9 @@ class _SignupPageState extends State<SignupPage> {
                       ],
                     ),
                   ),
-                  
+
                   SizedBox(height: titleSpacing),
-                  
+
                   // Subtitle
                   Text(
                     'Start your journey to financial success.',
@@ -186,9 +227,9 @@ class _SignupPageState extends State<SignupPage> {
                       height: 1.5,
                     ),
                   ),
-                  
+
                   SizedBox(height: sectionSpacing),
-                  
+
                   // Name Field
                   _buildInputField(
                     label: 'Full Name',
@@ -196,9 +237,9 @@ class _SignupPageState extends State<SignupPage> {
                     hintText: 'Enter your full name',
                     keyboardType: TextInputType.text,
                   ),
-                  
+
                   SizedBox(height: fieldSpacing),
-                  
+
                   // Email Field
                   _buildInputField(
                     label: 'Email',
@@ -206,9 +247,9 @@ class _SignupPageState extends State<SignupPage> {
                     hintText: 'Enter your email',
                     keyboardType: TextInputType.emailAddress,
                   ),
-                  
+
                   SizedBox(height: fieldSpacing),
-                  
+
                   // Password Field
                   _buildInputField(
                     label: 'Password',
@@ -222,9 +263,9 @@ class _SignupPageState extends State<SignupPage> {
                       });
                     },
                   ),
-                  
+
                   SizedBox(height: fieldSpacing),
-                  
+
                   // Confirm Password Field
                   _buildInputField(
                     label: 'Confirm Password',
@@ -238,9 +279,9 @@ class _SignupPageState extends State<SignupPage> {
                       });
                     },
                   ),
-                  
+
                   SizedBox(height: sectionSpacing),
-                  
+
                   // Sign Up Button
                   SizedBox(
                     width: double.infinity,
@@ -261,7 +302,9 @@ class _SignupPageState extends State<SignupPage> {
                               width: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.black,
+                                ),
                               ),
                             )
                           : Text(
@@ -274,9 +317,78 @@ class _SignupPageState extends State<SignupPage> {
                             ),
                     ),
                   ),
-                  
+
                   SizedBox(height: isCompactScreen ? 24.0 : 32.0),
-                  
+
+                  // Divider with "OR"
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withAlpha((0.2 * 255).round()),
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withAlpha((0.5 * 255).round()),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.white.withAlpha((0.2 * 255).round()),
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: isCompactScreen ? 24.0 : 32.0),
+
+                  // Google Sign-in Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : signInWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.white, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: Image.asset(
+                        'assets/icon/google_icon.png',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.login, color: Colors.black);
+                        },
+                      ),
+                      label: const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: isCompactScreen ? 24.0 : 32.0),
+
                   // Sign In Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -305,7 +417,7 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                     ],
                   ),
-                  
+
                   SizedBox(height: bottomPadding),
                 ],
               ),
@@ -343,7 +455,7 @@ class _SignupPageState extends State<SignupPage> {
             color: const Color(0xff1a1a1a),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withAlpha((0.1* 255).round()),
+              color: Colors.white.withAlpha((0.1 * 255).round()),
             ),
           ),
           child: TextField(
@@ -359,17 +471,15 @@ class _SignupPageState extends State<SignupPage> {
               hintText: hintText,
               hintStyle: TextStyle(
                 fontFamily: 'ClashDisplay',
-                color: Colors.white.withAlpha((0.5 * 255).round())
+                color: Colors.white.withAlpha((0.5 * 255).round()),
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
               suffixIcon: isPassword
                   ? IconButton(
                       icon: Icon(
-                        obscureText
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.white.withAlpha((0.5 * 255).round())
+                        obscureText ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.white.withAlpha((0.5 * 255).round()),
                       ),
                       onPressed: onToggleObscure,
                     )
