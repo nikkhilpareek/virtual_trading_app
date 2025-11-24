@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
@@ -494,20 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color(0xFFE5BCE7),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: IconButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        ),
-                        icon: const Icon(
-                          Icons.person,
-                          color: Colors.black,
-                          size: 20,
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
+                      child: _ProfileAvatarButton(),
                     ),
                   ],
                 ),
@@ -1107,6 +1096,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Reusable profile avatar button that shows Google/Supabase user avatar if available.
+class _ProfileAvatarButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    String? avatarUrl;
+    final meta = user?.userMetadata;
+    if (meta != null) {
+      // Check common keys that might contain avatar URL
+      avatarUrl =
+          (meta['avatar_url'] ?? meta['picture'] ?? meta['avatar']) as String?;
+    }
+
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      ),
+      borderRadius: BorderRadius.circular(12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: avatarUrl != null && avatarUrl.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: avatarUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const Center(
+                  child: Icon(Icons.person, color: Colors.black, size: 20),
+                ),
+                errorWidget: (context, url, error) => const Center(
+                  child: Icon(Icons.person, color: Colors.black, size: 20),
+                ),
+              )
+            : const Icon(Icons.person, color: Colors.black, size: 20),
       ),
     );
   }
