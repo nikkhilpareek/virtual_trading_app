@@ -42,12 +42,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (context, state) {
           if (state is UserLoading) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFE5BCE7),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
             );
           }
-          
+
           if (state is UserError) {
             return Center(
               child: Column(
@@ -99,10 +97,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             );
           }
-          
+
           if (state is UserLoaded) {
             final profile = state.profile;
-            
+
             return RefreshIndicator(
               color: const Color(0xFFE5BCE7),
               onRefresh: () async {
@@ -119,9 +117,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // Profile Avatar
                     _buildAvatar(context, profile.avatarUrl),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // User Name
                     Text(
                       profile.displayName,
@@ -132,9 +130,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Email
                     Text(
                       profile.email,
@@ -145,24 +143,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.white.withAlpha((0.6 * 255).round()),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Portfolio Stats
                     _buildPortfolioStats(context),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Settings Section
                     _buildSettingsSection(context),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Logout Button
                     _buildLogoutButton(context),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Account Info
                     Text(
                       'Member since ${_formatDate(profile.createdAt)}',
@@ -178,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             );
           }
-          
+
           return const SizedBox.shrink();
         },
       ),
@@ -186,6 +184,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatar(BuildContext context, String? avatarUrl) {
+    // Fallback to Supabase auth metadata if avatarUrl not provided by profile
+    if (avatarUrl == null || avatarUrl.isEmpty) {
+      final user = Supabase.instance.client.auth.currentUser;
+      final meta = user?.userMetadata;
+      if (meta != null) {
+        avatarUrl =
+            (meta['avatar_url'] ?? meta['picture'] ?? meta['avatar'])
+                as String?;
+      }
+    }
+
     return Stack(
       children: [
         Container(
@@ -193,10 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFE5BCE7),
-              width: 3,
-            ),
+            border: Border.all(color: const Color(0xFFE5BCE7), width: 3),
           ),
           child: ClipOval(
             child: avatarUrl != null && avatarUrl.isNotEmpty
@@ -210,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : _buildDefaultAvatar(),
           ),
         ),
-        
+
         // Upload button
         Positioned(
           bottom: 0,
@@ -218,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: BlocBuilder<UserBloc, UserState>(
             builder: (context, state) {
               final isUploading = state is UserUploadingAvatar;
-              
+
               return GestureDetector(
                 onTap: isUploading ? null : () => _pickAndUploadImage(context),
                 child: Container(
@@ -257,11 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildDefaultAvatar() {
     return Container(
       color: const Color(0xff1a1a1a),
-      child: const Icon(
-        Icons.person,
-        size: 60,
-        color: Color(0xFFE5BCE7),
-      ),
+      child: const Icon(Icons.person, size: 60, color: Color(0xFFE5BCE7)),
     );
   }
 
@@ -272,14 +274,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         double totalInvested = 0.0;
         double profitLoss = 0.0;
         int holdingsCount = 0;
-        
+
         if (state is HoldingsLoaded) {
           totalValue = state.totalValue;
           totalInvested = state.totalInvested;
           profitLoss = state.totalProfitLoss;
           holdingsCount = state.holdings.length;
         }
-        
+
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -302,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -326,9 +328,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -347,7 +349,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: _buildStatItem(
                       'P&L',
                       '${profitLoss >= 0 ? '+' : ''}${CurrencyFormatter.formatINRCompact(profitLoss).replaceAll('₹', '')}',
-                      profitLoss >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                      profitLoss >= 0
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
                       valueColor: profitLoss >= 0 ? Colors.green : Colors.red,
                     ),
                   ),
@@ -360,14 +364,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, {Color? valueColor}) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon, {
+    Color? valueColor,
+  }) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: const Color(0xFFE5BCE7),
-          size: 24,
-        ),
+        Icon(icon, color: const Color(0xFFE5BCE7), size: 24),
         const SizedBox(height: 8),
         Text(
           value,
@@ -397,9 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: const Color(0xff1a1a1a),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withAlpha((0.1 * 255).round()),
-        ),
+        border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
       ),
       child: Column(
         children: [
@@ -439,9 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Security',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Security settings coming soon'),
-                ),
+                const SnackBar(content: Text('Security settings coming soon')),
               );
             },
           ),
@@ -455,9 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Help & Support',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Help & Support coming soon'),
-                ),
+                const SnackBar(content: Text('Help & Support coming soon')),
               );
             },
           ),
@@ -490,11 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          icon,
-          color: const Color(0xFFE5BCE7),
-          size: 22,
-        ),
+        child: Icon(icon, color: const Color(0xFFE5BCE7), size: 22),
       ),
       title: Text(
         title,
@@ -505,11 +500,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.white,
         ),
       ),
-      trailing: trailing ?? const Icon(
-        Icons.arrow_forward_ios,
-        color: Colors.white,
-        size: 16,
-      ),
+      trailing:
+          trailing ??
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
       onTap: onTap,
     );
   }
@@ -524,18 +517,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Colors.red.withAlpha((0.3 * 255).round()),
-            ),
+            side: BorderSide(color: Colors.red.withAlpha((0.3 * 255).round())),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(
-              Icons.logout,
-              color: Colors.red,
-            ),
+            Icon(Icons.logout, color: Colors.red),
             SizedBox(width: 8),
             Text(
               'Logout',
@@ -554,8 +542,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -569,7 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image != null && context.mounted) {
         context.read<UserBloc>().add(UploadUserAvatar(image.path));
       }
@@ -588,16 +586,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog(BuildContext context) {
     final userState = context.read<UserBloc>().state;
     if (userState is! UserLoaded) return;
-    
-    final nameController = TextEditingController(text: userState.profile.fullName);
-    
+
+    final nameController = TextEditingController(
+      text: userState.profile.fullName,
+    );
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Edit Profile',
           style: TextStyle(
@@ -676,9 +674,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Logout',
           style: TextStyle(
@@ -689,10 +685,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         content: const Text(
           'Are you sure you want to logout?',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white,
-          ),
+          style: TextStyle(fontFamily: 'ClashDisplay', color: Colors.white),
         ),
         actions: [
           TextButton(
@@ -708,10 +701,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              
+
               // Sign out from Supabase
               await Supabase.instance.client.auth.signOut();
-              
+
               // Navigate to AuthGate (which will show onboarding/login)
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
@@ -739,16 +732,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(
-              Icons.trending_up,
-              color: Color(0xFFE5BCE7),
-              size: 28,
-            ),
+            Icon(Icons.trending_up, color: Color(0xFFE5BCE7), size: 28),
             SizedBox(width: 12),
             Text(
               'About Stonks',
