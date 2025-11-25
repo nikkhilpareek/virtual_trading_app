@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
+import 'exchange_rate_service.dart';
 
 /// Service class for FreeCryptoAPI integration
 /// Fetches real-time cryptocurrency prices and market data
 /// API Docs: https://www.freecryptoapi.com/
+///
+/// NOTE: The API returns prices in USD. We convert to INR using live exchange rates.
 class FreeCryptoService {
   static const String _baseUrl = 'https://api.freecryptoapi.com/v1';
   static const String _apiKey = '127osz6wwio8x9al1hza';
@@ -12,6 +15,14 @@ class FreeCryptoService {
   // Cache responses for 5 seconds to reduce API calls
   static final Map<String, CachedCryptoData> _cache = {};
   static const Duration _cacheDuration = Duration(seconds: 5);
+  
+  // Cache historical data for 1 hour to avoid rate limits
+  static final Map<String, CachedHistoricalData> _historicalCache = {};
+  static const Duration _historicalCacheDuration = Duration(hours: 1);
+  
+  // Rate limiting: Track last API call time for CoinGecko
+  static DateTime? _lastCoinGeckoCall;
+  static const Duration _minTimeBetweenCalls = Duration(seconds: 2);
 
   /// Fetches real-time price for a cryptocurrency
   /// [symbol] - Crypto symbol (e.g., 'BTC', 'ETH', 'BNB')
@@ -64,10 +75,15 @@ class FreeCryptoService {
             (data['symbols'] as List).isNotEmpty) {
           final cryptoData = data['symbols'][0];
 
-          // Parse price and convert to INR (approximate conversion: 1 USD = 83 INR)
+          // Parse price in USD (actual API value)
           final priceUSD =
               double.tryParse(cryptoData['last']?.toString() ?? '0') ?? 0.0;
-          final priceINR = priceUSD * 83.0; // Approximate USD to INR conversion
+
+          // Get live USD to INR exchange rate (cached for 1 hour)
+          final usdToInrRate = await ExchangeRateService.getUsdToInrRate();
+
+          // Convert USD prices to INR
+          final priceINR = priceUSD * usdToInrRate;
 
           // Parse daily change percentage
           final changePercent =
@@ -88,11 +104,11 @@ class FreeCryptoService {
             high24h:
                 (double.tryParse(cryptoData['highest']?.toString() ?? '0') ??
                     0.0) *
-                83.0,
+                usdToInrRate,
             low24h:
                 (double.tryParse(cryptoData['lowest']?.toString() ?? '0') ??
                     0.0) *
-                83.0,
+                usdToInrRate,
             currency: 'INR',
             lastUpdated: DateTime.now(),
           );
@@ -104,7 +120,7 @@ class FreeCryptoService {
           );
 
           developer.log(
-            'Successfully parsed crypto quote for $symbol',
+            'Successfully parsed crypto quote for $symbol (USD->INR rate: ${usdToInrRate.toStringAsFixed(2)})',
             name: 'FreeCryptoService',
           );
           return quote;
@@ -279,6 +295,148 @@ class FreeCryptoService {
   void clearCache() {
     _cache.clear();
   }
+
+  /// Fetches historical price data for a cryptocurrency using CoinGecko API
+  /// [symbol] - Crypto symbol (e.g., 'BTC', 'ETH', 'BNB')
+  /// [days] - Number of days of historical data (1, 7, 30, 90, 365)
+  /// Returns list of price points with timestamps
+  /// Cached for 1 hour to avoid rate limits
+  Future<List<HistoricalPricePoint>> getHistoricalPrices(
+    String symbol,
+    int days,
+  ) async {
+    final cacheKey = '$symbol-$days';
+    
+    // Check if we have cached data
+    if (_historicalCache.containsKey(cacheKey)) {
+      final cached = _historicalCache[cacheKey]!;
+      final age = DateTime.now().difference(cached.timestamp);
+      
+      if (age < _historicalCacheDuration) {
+        developer.log(
+          'Using cached historical data for $symbol ($days days) - age: ${age.inMinutes} minutes',
+          name: 'FreeCryptoService',
+        );
+        return cached.data;
+      }
+    }
+    
+    try {
+      // Rate limiting: Wait if needed to avoid hitting API limits
+      if (_lastCoinGeckoCall != null) {
+        final timeSinceLastCall = DateTime.now().difference(_lastCoinGeckoCall!);
+        if (timeSinceLastCall < _minTimeBetweenCalls) {
+          final waitTime = _minTimeBetweenCalls - timeSinceLastCall;
+          developer.log(
+            'Rate limiting: Waiting ${waitTime.inMilliseconds}ms before API call',
+            name: 'FreeCryptoService',
+          );
+          await Future.delayed(waitTime);
+        }
+      }
+      
+      // Map crypto symbols to CoinGecko IDs
+      final coinGeckoId = _getCoinGeckoId(symbol);
+      
+      // CoinGecko free API endpoint
+      final uri = Uri.parse(
+        'https://api.coingecko.com/api/v3/coins/$coinGeckoId/market_chart?vs_currency=usd&days=$days',
+      );
+      
+      developer.log(
+        'Fetching historical data for $symbol from CoinGecko',
+        name: 'FreeCryptoService',
+      );
+
+      _lastCoinGeckoCall = DateTime.now(); // Update last call time
+
+      final response = await http.get(uri).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Request timeout'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // CoinGecko response: { "prices": [[timestamp, price], ...] }
+        if (data['prices'] != null) {
+          final prices = data['prices'] as List;
+          
+          // Get live USD to INR exchange rate
+          final usdToInrRate = await ExchangeRateService.getUsdToInrRate();
+          
+          final historicalData = prices.map((item) {
+            final timestamp = DateTime.fromMillisecondsSinceEpoch(item[0]);
+            final priceUSD = (item[1] as num).toDouble();
+            final priceINR = priceUSD * usdToInrRate;
+            
+            return HistoricalPricePoint(
+              timestamp: timestamp,
+              price: priceINR,
+            );
+          }).toList();
+
+          // Cache the result for 1 hour
+          _historicalCache[cacheKey] = CachedHistoricalData(
+            data: historicalData,
+            timestamp: DateTime.now(),
+          );
+
+          developer.log(
+            'Successfully fetched ${historicalData.length} historical data points for $symbol (cached)',
+            name: 'FreeCryptoService',
+          );
+
+          return historicalData;
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else if (response.statusCode == 429) {
+        throw Exception('Rate limit exceeded. Please try again later.');
+      } else {
+        throw Exception('Failed to fetch historical data: ${response.statusCode}');
+      }
+    } catch (e) {
+      developer.log(
+        'Error fetching historical data for $symbol: $e',
+        name: 'FreeCryptoService',
+      );
+      rethrow;
+    }
+  }
+
+  /// Maps crypto symbols to CoinGecko IDs
+  String _getCoinGeckoId(String symbol) {
+    final ids = {
+      'BTC': 'bitcoin',
+      'ETH': 'ethereum',
+      'BNB': 'binancecoin',
+      'XRP': 'ripple',
+      'ADA': 'cardano',
+      'DOGE': 'dogecoin',
+      'SOL': 'solana',
+      'MATIC': 'matic-network',
+      'DOT': 'polkadot',
+      'SHIB': 'shiba-inu',
+      'TRX': 'tron',
+      'AVAX': 'avalanche-2',
+      'UNI': 'uniswap',
+      'LINK': 'chainlink',
+      'LTC': 'litecoin',
+      'BCH': 'bitcoin-cash',
+      'XLM': 'stellar',
+      'ATOM': 'cosmos',
+      'ETC': 'ethereum-classic',
+      'FIL': 'filecoin',
+      'APT': 'aptos',
+      'NEAR': 'near',
+      'VET': 'vechain',
+      'ALGO': 'algorand',
+      'XMR': 'monero',
+    };
+
+    return ids[symbol.toUpperCase()] ?? symbol.toLowerCase();
+  }
 }
 
 /// Cryptocurrency Quote Model
@@ -348,10 +506,29 @@ class CachedCryptoData {
   CachedCryptoData({required this.quote, required this.timestamp});
 }
 
+/// Cached historical data with timestamp
+class CachedHistoricalData {
+  final List<HistoricalPricePoint> data;
+  final DateTime timestamp;
+
+  CachedHistoricalData({required this.data, required this.timestamp});
+}
+
 /// Crypto search result
 class CryptoSearchResult {
   final String symbol;
   final String name;
 
   CryptoSearchResult(this.symbol, this.name);
+}
+
+/// Historical price point with timestamp
+class HistoricalPricePoint {
+  final DateTime timestamp;
+  final double price;
+
+  HistoricalPricePoint({
+    required this.timestamp,
+    required this.price,
+  });
 }
