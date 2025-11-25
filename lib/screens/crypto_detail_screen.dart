@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../core/services/freecrypto_service.dart';
 import '../core/utils/currency_formatter.dart';
+import '../widgets/crypto_logo.dart';
 import 'dart:math' as math;
 import 'dart:developer' as developer;
 
@@ -294,31 +295,10 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
               ),
               title: Row(
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(
-                        0xFFE5BCE7,
-                      ).withAlpha((0.1 * 255).round()),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        widget.crypto.symbol.substring(
-                          0,
-                          widget.crypto.symbol.length > 3
-                              ? 3
-                              : widget.crypto.symbol.length,
-                        ),
-                        style: const TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFE5BCE7),
-                        ),
-                      ),
-                    ),
+                  CryptoLogo(
+                    symbol: widget.crypto.symbol,
+                    size: 32,
+                    fontSize: 12,
                   ),
                   const SizedBox(width: 12),
                   Column(
