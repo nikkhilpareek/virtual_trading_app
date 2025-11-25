@@ -47,7 +47,7 @@ class _CryptoScreenState extends State<CryptoScreen>
     super.build(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBody: true,
       body: SafeArea(
         bottom: false,
@@ -104,9 +104,9 @@ class _CryptoScreenState extends State<CryptoScreen>
                     color: Colors.white.withAlpha((0.5 * 255).round()),
                     fontFamily: 'ClashDisplay',
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.search,
-                    color: Color(0xFFE5BCE7),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -121,7 +121,7 @@ class _CryptoScreenState extends State<CryptoScreen>
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xff1a1a1a),
+                  fillColor: Theme.of(context).colorScheme.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -192,7 +192,7 @@ class _CryptoScreenState extends State<CryptoScreen>
     // If searching, show filtered results
     if (_isSearching && _filteredCryptos.isNotEmpty) {
       return RefreshIndicator(
-        color: const Color(0xFFE5BCE7),
+        color: Theme.of(context).colorScheme.primary,
         onRefresh: () async {
           _performSearch(_searchController.text);
           await Future.delayed(const Duration(milliseconds: 500));
@@ -238,8 +238,10 @@ class _CryptoScreenState extends State<CryptoScreen>
     return BlocBuilder<CryptoBloc, CryptoState>(
       builder: (context, state) {
         if (state is CryptoMarketLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           );
         }
 
@@ -279,11 +281,13 @@ class _CryptoScreenState extends State<CryptoScreen>
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    context.read<CryptoBloc>().add(const LoadCryptoMarket());
+                    context.read<CryptoBloc>().add(
+                      const LoadCryptoMarket(limit: 5),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE5BCE7),
-                    foregroundColor: Colors.black,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   ),
                   child: const Text(
                     'Retry',
@@ -302,9 +306,11 @@ class _CryptoScreenState extends State<CryptoScreen>
           final cryptos = state.cryptos;
 
           return RefreshIndicator(
-            color: const Color(0xFFE5BCE7),
+            color: Theme.of(context).colorScheme.primary,
             onRefresh: () async {
-              context.read<CryptoBloc>().add(const RefreshCryptoMarket());
+              context.read<CryptoBloc>().add(
+                const RefreshCryptoMarket(limit: 5),
+              );
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: ListView.separated(
@@ -345,11 +351,9 @@ class _CryptoScreenState extends State<CryptoScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xff1a1a1a),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withAlpha((0.08 * 255).round()),
-          ),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -446,10 +450,14 @@ class _CryptoScreenState extends State<CryptoScreen>
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5BCE7),
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.add, color: Colors.black, size: 16),
+                child: Icon(
+                  Icons.add,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  size: 16,
+                ),
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -467,7 +475,7 @@ class _CryptoScreenState extends State<CryptoScreen>
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xff1a1a1a),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Buy ${crypto.symbol}',
@@ -506,7 +514,7 @@ class _CryptoScreenState extends State<CryptoScreen>
                   color: Colors.white.withAlpha((0.5 * 255).round()),
                 ),
                 filled: true,
-                fillColor: const Color(0xff0a0a0a),
+                fillColor: Theme.of(context).scaffoldBackgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -576,19 +584,19 @@ class _CryptoScreenState extends State<CryptoScreen>
                         );
                       },
                 child: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Buy',
                         style: TextStyle(
                           fontFamily: 'ClashDisplay',
-                          color: Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

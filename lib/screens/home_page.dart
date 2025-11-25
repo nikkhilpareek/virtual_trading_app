@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: PageView(
         controller: _pageController,
         // Use page scroll physics for smoother snapping between pages.
@@ -138,8 +138,10 @@ class _HomePageState extends State<HomePage> {
                       ? items[i]['active'] as IconData
                       : items[i]['icon'] as IconData;
                   final color = isActive
-                      ? const Color(0xFFE5BCE7)
-                      : Colors.white.withAlpha((0.7 * 255).round());
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7);
 
                   return Expanded(
                     child: GestureDetector(
@@ -238,12 +240,9 @@ Widget _buildTopPerformers(BuildContext context) {
     constraints: const BoxConstraints(minHeight: 200),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xff1a1a1a),
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: Colors.white.withAlpha((0.08 * 255).round()),
-        width: 1,
-      ),
+      border: Border.all(color: Theme.of(context).dividerColor, width: 1),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,12 +250,9 @@ Widget _buildTopPerformers(BuildContext context) {
         // Title
         Text(
           'Top Performer of the Week',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         // Vertical list showing only top 5, shrink-wrapped so the outer container
@@ -370,7 +366,7 @@ Widget _buildTopPerformers(BuildContext context) {
               ).showSnackBar(const SnackBar(content: Text('See more clicked')));
             },
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFE5BCE7),
+              backgroundColor: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -420,7 +416,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: SafeArea(
@@ -471,7 +467,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xff1a1a1a),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
@@ -494,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5BCE7),
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: _ProfileAvatarButton(),
@@ -507,7 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFFE5BCE7),
+        color: Theme.of(context).colorScheme.primary,
         onRefresh: () async {
           // Trigger refresh events for primary data shown on the dashboard
           context.read<UserBloc>().add(const RefreshUserProfile());
@@ -544,16 +540,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         constraints: const BoxConstraints(minHeight: 180),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                             width: 1,
                           ),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFFE5BCE7),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       );
@@ -568,10 +564,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                             width: 1,
                           ),
                         ),
@@ -713,9 +709,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           );
                                         },
                                         style: TextButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFE5BCE7,
-                                          ),
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 20,
                                             vertical: 8,
@@ -749,10 +745,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xff1a1a1a),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withAlpha((0.1 * 255).round()),
+                          color: Theme.of(context).dividerColor,
                           width: 1,
                         ),
                       ),
@@ -848,10 +844,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xff1a1a1a),
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withAlpha((0.1 * 255).round()),
+                  color: Theme.of(context).dividerColor,
                   width: 1,
                 ),
               ),
@@ -875,14 +871,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFE5BCE7,
-                          ).withAlpha((0.2 * 255).round()),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.info,
-                          color: Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                           size: 16,
                         ),
                       ),
@@ -1037,7 +1033,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: _buildActionButton(
                 'Buy',
                 Icons.add_shopping_cart,
-                const Color(0xFFE5BCE7),
+                Theme.of(context).colorScheme.primary,
                 () {
                   // Navigate to Market tab (index 1)
                   widget.onNavigateToTab?.call(1);

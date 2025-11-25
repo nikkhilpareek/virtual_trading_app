@@ -26,7 +26,9 @@ class _LearnScreenState extends State<LearnScreen> {
 
   Future<void> _loadLessons() async {
     try {
-      final String jsonString = await rootBundle.loadString('assets/data/lessons.json');
+      final String jsonString = await rootBundle.loadString(
+        'assets/data/lessons.json',
+      );
       final List<dynamic> jsonData = json.decode(jsonString);
       setState(() {
         _lessons = jsonData.map((json) => Lesson.fromJson(json)).toList();
@@ -43,163 +45,157 @@ class _LearnScreenState extends State<LearnScreen> {
   void _openLesson(Lesson lesson) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => LessonDetailScreen(lesson: lesson),
-      ),
+      MaterialPageRoute(builder: (_) => LessonDetailScreen(lesson: lesson)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBody: true,
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                color: Color(0xFFE5BCE7),
+                color: Theme.of(context).colorScheme.primary,
               ),
             )
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 64,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-                        // Learn title
-                        const Text(
-                          'Learn',
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Featured lesson card at the top
-                        if (_lessons.isNotEmpty)
-                          GestureDetector(
-                            onTap: () => _openLesson(_lessons.first),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xff121212),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: Colors.white.withAlpha((0.06 * 255).round()),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 72,
-                                    height: 72,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xff1f1f1f),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.play_arrow,
-                                      color: Color(0xFFE5BCE7),
-                                      size: 36,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _lessons.first.title,
-                                          style: const TextStyle(
-                                            fontFamily: 'ClashDisplay',
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          _lessons.first.description,
-                                          style: const TextStyle(
-                                            fontFamily: 'ClashDisplay',
-                                            color: Colors.white54,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                        const SizedBox(height: 18),
-
-                        // Categories
-                        
-
-                        // Lessons list
-                        const Text(
-                          'Lessons',
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            color: Colors.white70,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Flexible list area
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 100),
-                            itemCount: _lessons.length,
-                            itemBuilder: (context, index) {
-                              final lesson = _lessons[index];
-                              return _LessonCard(
-                                lesson: lesson,
-                                onTap: () => _openLesson(lesson),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      color: Colors.white70,
+                      fontSize: 16,
                     ),
                   ),
+                ],
+              ),
+            )
+          : SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    // Learn title
+                    const Text(
+                      'Learn',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Featured lesson card at the top
+                    if (_lessons.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => _openLesson(_lessons.first),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.play_arrow,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 36,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _lessons.first.title,
+                                      style: const TextStyle(
+                                        fontFamily: 'ClashDisplay',
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _lessons.first.description,
+                                      style: const TextStyle(
+                                        fontFamily: 'ClashDisplay',
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 18),
+
+                    // Categories
+
+                    // Lessons list
+                    const Text(
+                      'Lessons',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Flexible list area
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        itemCount: _lessons.length,
+                        itemBuilder: (context, index) {
+                          final lesson = _lessons[index];
+                          return _LessonCard(
+                            lesson: lesson,
+                            onTap: () => _openLesson(lesson),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
     );
   }
 }
@@ -242,10 +238,7 @@ class _LessonCard extends StatelessWidget {
   final Lesson lesson;
   final VoidCallback onTap;
 
-  const _LessonCard({
-    required this.lesson,
-    required this.onTap,
-  });
+  const _LessonCard({required this.lesson, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -256,9 +249,9 @@ class _LessonCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xff121212),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withAlpha((0.04 * 255).round())),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,12 +262,12 @@ class _LessonCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xff1f1f1f),
+                      color: Theme.of(context).colorScheme.surfaceVariant,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.menu_book,
-                      color: Color(0xFFE5BCE7),
+                      color: Theme.of(context).colorScheme.primary,
                       size: 24,
                     ),
                   ),
@@ -302,14 +295,16 @@ class _LessonCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5BCE7).withAlpha((0.12 * 255).round()),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       lesson.difficulty,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'ClashDisplay',
-                        color: Color(0xFFE5BCE7),
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),

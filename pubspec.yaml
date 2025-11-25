@@ -39,6 +39,9 @@ dependencies:
   flutter_bloc: ^8.1.6
   equatable: ^2.0.5
   
+  # Local storage
+  shared_preferences: ^2.3.3
+  
   # HTTP requests
   http: ^1.2.2
   

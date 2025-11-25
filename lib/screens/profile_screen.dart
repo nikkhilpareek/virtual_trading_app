@@ -24,25 +24,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
       appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        title: Text('Profile', style: Theme.of(context).textTheme.titleLarge),
       ),
       body: BlocBuilder<UserBloc, UserState>(
         builder: (context, state) {
           if (state is UserLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             );
           }
 
@@ -54,26 +45,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Icon(
                     Icons.error_outline,
                     size: 60,
-                    color: Colors.red.withAlpha((0.7 * 255).round()),
+                    color: Theme.of(context).colorScheme.error,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Error loading profile',
-                    style: TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     state.message,
-                    style: TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withAlpha((0.5 * 255).round()),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -82,16 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       context.read<UserBloc>().add(const RefreshUserProfile());
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE5BCE7),
-                    ),
-                    child: const Text(
-                      'Retry',
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        color: Colors.black,
-                      ),
-                    ),
+                    child: const Text('Retry'),
                   ),
                 ],
               ),
@@ -102,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final profile = state.profile;
 
             return RefreshIndicator(
-              color: const Color(0xFFE5BCE7),
+              color: Theme.of(context).colorScheme.primary,
               onRefresh: () async {
                 context.read<UserBloc>().add(const RefreshUserProfile());
                 context.read<HoldingsBloc>().add(const RefreshHoldings());
@@ -123,12 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // User Name
                     Text(
                       profile.displayName,
-                      style: const TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
 
                     const SizedBox(height: 8),
@@ -136,11 +105,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Email
                     Text(
                       profile.email,
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withAlpha((0.6 * 255).round()),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
 
@@ -164,11 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Account Info
                     Text(
                       'Member since ${_formatDate(profile.createdAt)}',
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withAlpha((0.4 * 255).round()),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -202,7 +167,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFE5BCE7), width: 3),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.primary,
+              width: 3,
+            ),
           ),
           child: ClipOval(
             child: avatarUrl != null && avatarUrl.isNotEmpty
@@ -210,10 +178,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     avatarUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return _buildDefaultAvatar();
+                      return _buildDefaultAvatar(context);
                     },
                   )
-                : _buildDefaultAvatar(),
+                : _buildDefaultAvatar(context),
           ),
         ),
 
@@ -231,24 +199,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5BCE7),
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xff0a0a0a),
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       width: 2,
                     ),
                   ),
                   child: isUploading
-                      ? const Padding(
-                          padding: EdgeInsets.all(8.0),
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
                           child: CircularProgressIndicator(
-                            color: Colors.black,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             strokeWidth: 2,
                           ),
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.camera_alt,
-                          color: Colors.black,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           size: 18,
                         ),
                 ),
@@ -260,10 +228,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDefaultAvatar() {
+  Widget _buildDefaultAvatar(BuildContext context) {
     return Container(
-      color: const Color(0xff1a1a1a),
-      child: const Icon(Icons.person, size: 60, color: Color(0xFFE5BCE7)),
+      color: Theme.of(context).colorScheme.surfaceVariant,
+      child: Icon(
+        Icons.person,
+        size: 60,
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 
@@ -285,23 +257,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xff1a1a1a),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withAlpha((0.1 * 255).round()),
-            ),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Portfolio Summary',
-                style: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 20),
 
@@ -317,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     width: 1,
                     height: 40,
-                    color: Colors.white.withAlpha((0.1 * 255).round()),
+                    color: Theme.of(context).dividerColor,
                   ),
                   Expanded(
                     child: _buildStatItem(
@@ -372,25 +337,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFFE5BCE7), size: 24),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
         const SizedBox(height: 8),
         Text(
           value,
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? Colors.white,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: Colors.white.withAlpha((0.5 * 255).round()),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -400,9 +360,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSettingsSection(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xff1a1a1a),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: [
@@ -411,11 +371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Edit Profile',
             onTap: () => _showEditProfileDialog(context),
           ),
-          Divider(
-            color: Colors.white.withAlpha((0.1 * 255).round()),
-            height: 1,
-            indent: 60,
-          ),
+          Divider(color: Theme.of(context).dividerColor, height: 1, indent: 60),
           _buildSettingsTile(
             icon: Icons.notifications_outlined,
             title: 'Notifications',
@@ -429,8 +385,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-              activeThumbColor: const Color(0xFFE5BCE7),
             ),
+          ),
+          Divider(color: Theme.of(context).dividerColor, height: 1, indent: 60),
+          BlocBuilder<ThemeBloc, ThemeState>(
+            builder: (context, themeState) {
+              return _buildSettingsTile(
+                icon: themeState.isDarkMode
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
+                title: 'Dark Mode',
+                trailing: Switch(
+                  value: themeState.isDarkMode,
+                  onChanged: (value) {
+                    context.read<ThemeBloc>().add(const ToggleThemeEvent());
+                  },
+                  activeColor: Theme.of(context).primaryColor,
+                  activeTrackColor: Theme.of(
+                    context,
+                  ).primaryColor.withOpacity(0.5),
+                ),
+              );
+            },
           ),
           Divider(
             color: Colors.white.withAlpha((0.1 * 255).round()),
@@ -446,11 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             },
           ),
-          Divider(
-            color: Colors.white.withAlpha((0.1 * 255).round()),
-            height: 1,
-            indent: 60,
-          ),
+          Divider(color: Theme.of(context).dividerColor, height: 1, indent: 60),
           _buildSettingsTile(
             icon: Icons.help_outline,
             title: 'Help & Support',
@@ -460,11 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             },
           ),
-          Divider(
-            color: Colors.white.withAlpha((0.1 * 255).round()),
-            height: 1,
-            indent: 60,
-          ),
+          Divider(color: Theme.of(context).dividerColor, height: 1, indent: 60),
           _buildSettingsTile(
             icon: Icons.info_outline,
             title: 'About',
@@ -486,23 +454,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: const Color(0xFFE5BCE7), size: 22),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'ClashDisplay',
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.white,
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+          size: 22,
         ),
       ),
+      title: Text(title, style: Theme.of(context).textTheme.titleMedium),
       trailing:
           trailing ??
-          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+          Icon(
+            Icons.arrow_forward_ios,
+            color: Theme.of(context).colorScheme.onSurface,
+            size: 16,
+          ),
       onTap: onTap,
     );
   }
@@ -510,28 +478,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
+      child: OutlinedButton(
         onPressed: () => _showLogoutDialog(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.withAlpha((0.1 * 255).round()),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.error,
+          side: BorderSide(color: Theme.of(context).colorScheme.error),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.red.withAlpha((0.3 * 255).round())),
-          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.logout, color: Colors.red),
-            SizedBox(width: 8),
+          children: [
+            Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 8),
             Text(
               'Logout',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.red,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
           ],
@@ -594,35 +556,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: const Text('Edit Profile'),
         content: TextField(
           controller: nameController,
-          style: const TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white,
-          ),
-          decoration: InputDecoration(
-            labelText: 'Full Name',
-            labelStyle: TextStyle(
-              fontFamily: 'ClashDisplay',
-              color: Colors.white.withAlpha((0.5 * 255).round()),
-            ),
-            filled: true,
-            fillColor: const Color(0xff0a0a0a),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
+          decoration: const InputDecoration(labelText: 'Full Name'),
         ),
         actions: [
           TextButton(
@@ -630,13 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               nameController.dispose();
               Navigator.pop(dialogContext);
             },
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white.withAlpha((0.5 * 255).round()),
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -647,22 +578,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Profile updated successfully'),
-                    backgroundColor: Colors.green,
-                  ),
+                  const SnackBar(content: Text('Profile updated successfully')),
                 );
               }
               nameController.dispose();
             },
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Color(0xFFE5BCE7),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -673,30 +594,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xff1a1a1a),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          'Are you sure you want to logout?',
-          style: TextStyle(fontFamily: 'ClashDisplay', color: Colors.white),
-        ),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white.withAlpha((0.5 * 255).round()),
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -713,11 +616,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }
             },
-            child: const Text(
+            child: Text(
               'Logout',
               style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.red,
+                color: Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
