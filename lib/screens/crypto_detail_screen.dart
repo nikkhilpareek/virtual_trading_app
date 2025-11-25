@@ -72,7 +72,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     } catch (e) {
       developer.log('Error loading historical data: $e');
       if (!mounted) return;
-      
+
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -80,7 +80,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      
+
       setState(() => _isLoading = false);
     }
   }
