@@ -1,7 +1,18 @@
 import 'package:intl/intl.dart';
 
-/// Utility class for formatting Indian currency (INR)
+/// Utility class for formatting currency (supports USD and INR)
 class CurrencyFormatter {
+  /// Formats a number as USD with proper formatting
+  /// Example: 1234567.89 -> $1,234,567.89
+  static String formatUSD(double amount, {int decimals = 2}) {
+    final formatter = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: '\$',
+      decimalDigits: decimals,
+    );
+    return formatter.format(amount);
+  }
+
   /// Formats a number as Indian Rupees with proper formatting
   /// Example: 1234567.89 -> ₹12,34,567.89
   static String formatINR(double amount, {int decimals = 2}) {
@@ -11,6 +22,30 @@ class CurrencyFormatter {
       decimalDigits: decimals,
     );
     return formatter.format(amount);
+  }
+
+  /// Formats in compact USD format (K/M/B)
+  /// Example: 1000000 -> $1.00M, 1000 -> $1.00K
+  static String formatUSDCompact(double amount) {
+    final absAmount = amount.abs();
+    final isNegative = amount < 0;
+    final prefix = isNegative ? '-\$' : '\$';
+
+    if (absAmount >= 1000000000) {
+      // Billions
+      final billions = absAmount / 1000000000;
+      return '$prefix${billions.toStringAsFixed(2)}B';
+    } else if (absAmount >= 1000000) {
+      // Millions
+      final millions = absAmount / 1000000;
+      return '$prefix${millions.toStringAsFixed(2)}M';
+    } else if (absAmount >= 1000) {
+      // Thousands
+      final thousands = absAmount / 1000;
+      return '$prefix${thousands.toStringAsFixed(2)}K';
+    } else {
+      return '$prefix${absAmount.toStringAsFixed(2)}';
+    }
   }
 
   /// Formats a number in compact Indian format (Lakhs/Crores)
