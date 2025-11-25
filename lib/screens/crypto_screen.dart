@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/services/freecrypto_service.dart';
 import '../core/utils/currency_formatter.dart';
+import '../widgets/crypto_logo.dart';
 import 'crypto_detail_screen.dart';
 import 'dart:async';
 
@@ -352,29 +353,8 @@ class _CryptoScreenState extends State<CryptoScreen>
         ),
         child: Row(
           children: [
-            // Crypto Icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  crypto.symbol.substring(
-                    0,
-                    crypto.symbol.length > 3 ? 3 : crypto.symbol.length,
-                  ),
-                  style: const TextStyle(
-                    fontFamily: 'ClashDisplay',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFE5BCE7),
-                  ),
-                ),
-              ),
-            ),
+            // Crypto Icon with logo from CryptoCurrency Icons API
+            CryptoLogo(symbol: crypto.symbol, size: 48, fontSize: 14),
 
             const SizedBox(width: 12),
 
