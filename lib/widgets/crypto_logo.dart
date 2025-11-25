@@ -17,8 +17,9 @@ class CryptoLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Logokit API uses lowercase symbols
-    final logoUrl = 'https://assets.coincap.io/assets/icons/${symbol.toLowerCase()}@2x.png';
-    
+    final logoUrl =
+        'https://assets.coincap.io/assets/icons/${symbol.toLowerCase()}@2x.png';
+
     return Container(
       width: size,
       height: size,
