@@ -10,7 +10,8 @@ void main() async {
   //supabase setup
   await Supabase.initialize(
     url: 'https://edmeobztjodvmichfmej.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkbWVvYnp0am9kdm1pY2hmbWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4ODAwOTQsImV4cCI6MjA3NjQ1NjA5NH0.ZQi5iPj6JE7Ft_jVq7fBAib4C6BrQ7Lztmd5AMB3zzo',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkbWVvYnp0am9kdm1pY2hmbWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4ODAwOTQsImV4cCI6MjA3NjQ1NjA5NH0.ZQi5iPj6JE7Ft_jVq7fBAib4C6BrQ7Lztmd5AMB3zzo',
   );
 
   runApp(const MyApp());
@@ -29,12 +30,11 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (context) => HoldingsBloc()..add(const LoadHoldings()),
         ),
-        BlocProvider(
-          create: (context) => TransactionBloc(),
-        ),
+        BlocProvider(create: (context) => TransactionBloc()),
         BlocProvider(
           create: (context) => WatchlistBloc()..add(const LoadWatchlist()),
         ),
+        BlocProvider(create: (context) => CryptoBloc()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

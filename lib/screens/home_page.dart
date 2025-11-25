@@ -10,6 +10,7 @@ import 'assets_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'learn_screen.dart';
+import 'crypto_screen.dart';
 import 'dart:ui';
 
 class HomePage extends StatefulWidget {
@@ -1134,65 +1135,6 @@ class _ProfileAvatarButton extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.person, color: Colors.black, size: 20),
-      ),
-    );
-  }
-}
-
-// Crypto Screen
-class CryptoScreen extends StatelessWidget {
-  const CryptoScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
-      appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: const Text(
-          'Crypto',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search, color: Colors.white),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.currency_bitcoin, size: 80, color: Color(0xFFE5BCE7)),
-            SizedBox(height: 20),
-            Text(
-              'Cryptocurrency',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Crypto trading coming soon...',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
