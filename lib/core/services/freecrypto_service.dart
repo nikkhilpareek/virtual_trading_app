@@ -15,11 +15,11 @@ class FreeCryptoService {
   // Cache responses for 5 seconds to reduce API calls
   static final Map<String, CachedCryptoData> _cache = {};
   static const Duration _cacheDuration = Duration(seconds: 5);
-  
+
   // Cache historical data for 1 hour to avoid rate limits
   static final Map<String, CachedHistoricalData> _historicalCache = {};
   static const Duration _historicalCacheDuration = Duration(hours: 1);
-  
+
   // Rate limiting: Track last API call time for CoinGecko
   static DateTime? _lastCoinGeckoCall;
   static const Duration _minTimeBetweenCalls = Duration(seconds: 2);
@@ -306,12 +306,12 @@ class FreeCryptoService {
     int days,
   ) async {
     final cacheKey = '$symbol-$days';
-    
+
     // Check if we have cached data
     if (_historicalCache.containsKey(cacheKey)) {
       final cached = _historicalCache[cacheKey]!;
       final age = DateTime.now().difference(cached.timestamp);
-      
+
       if (age < _historicalCacheDuration) {
         developer.log(
           'Using cached historical data for $symbol ($days days) - age: ${age.inMinutes} minutes',
@@ -320,11 +320,13 @@ class FreeCryptoService {
         return cached.data;
       }
     }
-    
+
     try {
       // Rate limiting: Wait if needed to avoid hitting API limits
       if (_lastCoinGeckoCall != null) {
-        final timeSinceLastCall = DateTime.now().difference(_lastCoinGeckoCall!);
+        final timeSinceLastCall = DateTime.now().difference(
+          _lastCoinGeckoCall!,
+        );
         if (timeSinceLastCall < _minTimeBetweenCalls) {
           final waitTime = _minTimeBetweenCalls - timeSinceLastCall;
           developer.log(
@@ -334,15 +336,15 @@ class FreeCryptoService {
           await Future.delayed(waitTime);
         }
       }
-      
+
       // Map crypto symbols to CoinGecko IDs
       final coinGeckoId = _getCoinGeckoId(symbol);
-      
+
       // CoinGecko free API endpoint
       final uri = Uri.parse(
         'https://api.coingecko.com/api/v3/coins/$coinGeckoId/market_chart?vs_currency=usd&days=$days',
       );
-      
+
       developer.log(
         'Fetching historical data for $symbol from CoinGecko',
         name: 'FreeCryptoService',
@@ -350,30 +352,29 @@ class FreeCryptoService {
 
       _lastCoinGeckoCall = DateTime.now(); // Update last call time
 
-      final response = await http.get(uri).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Request timeout'),
-      );
+      final response = await http
+          .get(uri)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw Exception('Request timeout'),
+          );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         // CoinGecko response: { "prices": [[timestamp, price], ...] }
         if (data['prices'] != null) {
           final prices = data['prices'] as List;
-          
+
           // Get live USD to INR exchange rate
           final usdToInrRate = await ExchangeRateService.getUsdToInrRate();
-          
+
           final historicalData = prices.map((item) {
             final timestamp = DateTime.fromMillisecondsSinceEpoch(item[0]);
             final priceUSD = (item[1] as num).toDouble();
             final priceINR = priceUSD * usdToInrRate;
-            
-            return HistoricalPricePoint(
-              timestamp: timestamp,
-              price: priceINR,
-            );
+
+            return HistoricalPricePoint(timestamp: timestamp, price: priceINR);
           }).toList();
 
           // Cache the result for 1 hour
@@ -394,7 +395,9 @@ class FreeCryptoService {
       } else if (response.statusCode == 429) {
         throw Exception('Rate limit exceeded. Please try again later.');
       } else {
-        throw Exception('Failed to fetch historical data: ${response.statusCode}');
+        throw Exception(
+          'Failed to fetch historical data: ${response.statusCode}',
+        );
       }
     } catch (e) {
       developer.log(
@@ -527,8 +530,5 @@ class HistoricalPricePoint {
   final DateTime timestamp;
   final double price;
 
-  HistoricalPricePoint({
-    required this.timestamp,
-    required this.price,
-  });
+  HistoricalPricePoint({required this.timestamp, required this.price});
 }
