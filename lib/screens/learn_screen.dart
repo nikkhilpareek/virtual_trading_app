@@ -119,7 +119,7 @@ class _LearnScreenState extends State<LearnScreen> {
                                 decoration: BoxDecoration(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.surfaceVariant,
+                                  ).colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
@@ -217,7 +217,7 @@ class _LearnScreenState extends State<LearnScreen> {
 //           decoration: BoxDecoration(
 //             color: const Color(0xff121212),
 //             borderRadius: BorderRadius.circular(24),
-//             border: Border.all(color: Colors.white.withOpacity(0.06)),
+//             border: Border.all(color: Colors.white.withAlpha((0.06 * 255).round())),
 //           ),
 //           child: Text(
 //             label,
@@ -262,7 +262,9 @@ class _LessonCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -297,7 +299,7 @@ class _LessonCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.12),
+                      ).colorScheme.primary.withAlpha((0.12 * 255).round()),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(

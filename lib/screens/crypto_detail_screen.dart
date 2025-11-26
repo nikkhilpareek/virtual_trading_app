@@ -224,7 +224,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                     FlLine(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.5),
+                      ).colorScheme.primary.withAlpha((0.5 * 255).round()),
                       strokeWidth: 2,
                     ),
                     FlDotData(

@@ -141,7 +141,7 @@ class _HomePageState extends State<HomePage> {
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.7);
+                        ).colorScheme.onSurface.withAlpha((0.7 * 255).round());
 
                   return Expanded(
                     child: GestureDetector(
@@ -870,7 +870,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.2),
+                          ).colorScheme.primary.withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Icon(
