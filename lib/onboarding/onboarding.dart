@@ -8,7 +8,7 @@ class Onboarding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -60,7 +60,7 @@ class Onboarding extends StatelessWidget {
                               fontFamily: 'ClashDisplay',
                               fontSize: 42,
                               fontWeight: FontWeight.w600, // Semibold
-                              color: const Color(0xFFE5BCE7),
+                              color: Theme.of(context).colorScheme.primary,
                               height: 1.1,
                             ),
                           ),
@@ -99,16 +99,18 @@ class Onboarding extends StatelessWidget {
               // Get Started Sliding Button
               SlidingButton(
                 text: 'Get Started',
-                backgroundColor: const Color(0xFF303030), // Keep the existing pink color
-                sliderColor: const Color(0xFFE5BCE7), // Orange slider color
+                backgroundColor: const Color(
+                  0xFF303030,
+                ), // Keep the existing pink color
+                sliderColor: Theme.of(
+                  context,
+                ).colorScheme.primary, // Royal Blue slider color
                 textColor: Colors.black,
                 onSlideComplete: () {
                   // Navigate to login screen
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginPage(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
               ),

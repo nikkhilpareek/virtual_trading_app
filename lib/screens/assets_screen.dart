@@ -31,7 +31,7 @@ class _AssetsScreenState extends State<AssetsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBody: true,
       body: SafeArea(
         bottom: false,
@@ -39,17 +39,46 @@ class _AssetsScreenState extends State<AssetsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // Title
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Text(
-                'Assets',
-                style: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+            // Title and Reload Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Assets',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Reload both holdings and watchlist
+                      context.read<HoldingsBloc>().add(const RefreshHoldings());
+                      context.read<WatchlistBloc>().add(const LoadWatchlist());
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Refreshing assets...'),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.refresh,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                    tooltip: 'Reload Assets',
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -86,12 +115,12 @@ class _AssetsScreenState extends State<AssetsScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(
-                            0xFFE5BCE7,
-                          ).withAlpha((0.1 * 255).round()),
-                          const Color(
-                            0xFFD4A5D6,
-                          ).withAlpha((0.05 * 255).round()),
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
+                          Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -173,21 +202,21 @@ class _AssetsScreenState extends State<AssetsScreen>
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xff121212),
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE5BCE7), Color(0xFFD4A5D6)],
-                    ),
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelColor: Colors.black,
-                  unselectedLabelColor: Colors.white54,
+                  labelColor: Theme.of(context).colorScheme.onPrimary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
                   labelStyle: const TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 14,
@@ -226,8 +255,10 @@ class _AssetsScreenState extends State<AssetsScreen>
     return BlocBuilder<HoldingsBloc, HoldingsState>(
       builder: (context, state) {
         if (state is HoldingsLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           );
         }
 
@@ -314,8 +345,10 @@ class _AssetsScreenState extends State<AssetsScreen>
     return BlocBuilder<WatchlistBloc, WatchlistState>(
       builder: (context, state) {
         if (state is WatchlistLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+          return Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           );
         }
 
@@ -417,11 +450,9 @@ class _AssetsScreenState extends State<AssetsScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xff121212),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withAlpha((0.06 * 255).round()),
-          ),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,9 +565,9 @@ class _AssetsScreenState extends State<AssetsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xff121212),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withAlpha((0.06 * 255).round())),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -570,16 +601,16 @@ class _AssetsScreenState extends State<AssetsScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFE5BCE7).withAlpha((0.15 * 255).round()),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               item.assetType.name.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'ClashDisplay',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFFE5BCE7),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),

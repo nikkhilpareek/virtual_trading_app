@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: PageView(
         controller: _pageController,
         // Use page scroll physics for smoother snapping between pages.
@@ -138,8 +138,10 @@ class _HomePageState extends State<HomePage> {
                       ? items[i]['active'] as IconData
                       : items[i]['icon'] as IconData;
                   final color = isActive
-                      ? const Color(0xFFE5BCE7)
-                      : Colors.white.withAlpha((0.7 * 255).round());
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7);
 
                   return Expanded(
                     child: GestureDetector(
@@ -238,12 +240,9 @@ Widget _buildTopPerformers(BuildContext context) {
     constraints: const BoxConstraints(minHeight: 200),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xff1a1a1a),
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: Colors.white.withAlpha((0.08 * 255).round()),
-        width: 1,
-      ),
+      border: Border.all(color: Theme.of(context).dividerColor, width: 1),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,12 +250,9 @@ Widget _buildTopPerformers(BuildContext context) {
         // Title
         Text(
           'Top Performer of the Week',
-          style: TextStyle(
-            fontFamily: 'ClashDisplay',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         // Vertical list showing only top 5, shrink-wrapped so the outer container
@@ -370,7 +366,7 @@ Widget _buildTopPerformers(BuildContext context) {
               ).showSnackBar(const SnackBar(content: Text('See more clicked')));
             },
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFE5BCE7),
+              backgroundColor: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -420,7 +416,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: SafeArea(
@@ -471,7 +467,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xff1a1a1a),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
@@ -494,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5BCE7),
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: _ProfileAvatarButton(),
@@ -507,7 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFFE5BCE7),
+        color: Theme.of(context).colorScheme.primary,
         onRefresh: () async {
           // Trigger refresh events for primary data shown on the dashboard
           context.read<UserBloc>().add(const RefreshUserProfile());
@@ -544,16 +540,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         constraints: const BoxConstraints(minHeight: 180),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                             width: 1,
                           ),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFFE5BCE7),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       );
@@ -568,10 +564,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                             width: 1,
                           ),
                         ),
@@ -704,18 +700,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     Center(
                                       child: TextButton(
                                         onPressed: () {
-                                          ScaffoldMessenger.of(
+                                          _showAllActivitiesBottomSheet(
                                             context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Show all clicked'),
-                                            ),
+                                            state.transactions,
                                           );
                                         },
                                         style: TextButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFE5BCE7,
-                                          ),
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 20,
                                             vertical: 8,
@@ -749,10 +742,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xff1a1a1a),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withAlpha((0.1 * 255).round()),
+                          color: Theme.of(context).dividerColor,
                           width: 1,
                         ),
                       ),
@@ -848,10 +841,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xff1a1a1a),
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withAlpha((0.1 * 255).round()),
+                  color: Theme.of(context).dividerColor,
                   width: 1,
                 ),
               ),
@@ -875,14 +868,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFE5BCE7,
-                          ).withAlpha((0.2 * 255).round()),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.info,
-                          color: Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                           size: 16,
                         ),
                       ),
@@ -1037,7 +1030,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: _buildActionButton(
                 'Buy',
                 Icons.add_shopping_cart,
-                const Color(0xFFE5BCE7),
+                Theme.of(context).colorScheme.primary,
                 () {
                   // Navigate to Market tab (index 1)
                   widget.onNavigateToTab?.call(1);
@@ -1099,6 +1092,229 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  /// Show all recent activities in a bottom sheet
+  void _showAllActivitiesBottomSheet(
+    BuildContext context,
+    List<Transaction> transactions,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.75, // 3/4th of the screen
+        minChildSize: 0.5,
+        maxChildSize: 0.75, // Maximum 3/4th of the screen
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.3 * 255).round()),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'All Activities',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '${transactions.length} transactions',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withAlpha((0.6 * 255).round()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // List of transactions
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  itemCount: transactions.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final transaction = transactions[index];
+                    final isBuy =
+                        transaction.transactionType == TransactionType.buy;
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Icon
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: (isBuy ? Colors.green : Colors.red)
+                                  .withAlpha((0.1 * 255).round()),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isBuy ? Icons.arrow_downward : Icons.arrow_upward,
+                              color: isBuy ? Colors.green : Colors.red,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Transaction details
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      transaction.assetSymbol,
+                                      style: const TextStyle(
+                                        fontFamily: 'ClashDisplay',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      CurrencyFormatter.formatINR(
+                                        transaction.totalAmount,
+                                      ),
+                                      style: TextStyle(
+                                        fontFamily: 'ClashDisplay',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: isBuy
+                                            ? Colors.red
+                                            : Colors.green,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${transaction.quantity.toStringAsFixed(2)} @ ${CurrencyFormatter.formatINR(transaction.pricePerUnit)}',
+                                      style: TextStyle(
+                                        fontFamily: 'ClashDisplay',
+                                        fontSize: 12,
+                                        color: Colors.white.withAlpha(
+                                          (0.6 * 255).round(),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            (isBuy ? Colors.green : Colors.red)
+                                                .withAlpha((0.2 * 255).round()),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        isBuy ? 'BUY' : 'SELL',
+                                        style: TextStyle(
+                                          fontFamily: 'ClashDisplay',
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: isBuy
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatDateTime(transaction.createdAt),
+                                  style: TextStyle(
+                                    fontFamily: 'ClashDisplay',
+                                    fontSize: 11,
+                                    color: Colors.white.withAlpha(
+                                      (0.5 * 255).round(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Format DateTime for display
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        if (difference.inMinutes == 0) {
+          return 'Just now';
+        }
+        return '${difference.inMinutes}m ago';
+      }
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
   }
 }
 

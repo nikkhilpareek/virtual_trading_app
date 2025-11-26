@@ -18,9 +18,9 @@ class NotificationsScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: const Text(
           'Notifications',
@@ -40,6 +40,7 @@ class NotificationsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             for (var n in notifications)
               _buildNotificationTile(
+                context: context,
                 title: n['title'] as String,
                 message: n['message'] as String,
                 time: n['time'] as String,
@@ -53,6 +54,7 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   Widget _buildNotificationTile({
+    required BuildContext context,
     required String title,
     required String message,
     required String time,
@@ -62,9 +64,9 @@ class NotificationsScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xff1a1a1a),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withAlpha((0.04 * 255).round())),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,15 +76,15 @@ class NotificationsScreen extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: isRead
-                  ? Colors.white.withAlpha((0.03 * 255).round())
-                  : const Color(0xFFE5BCE7).withAlpha((0.12 * 255).round()),
+                  ? Theme.of(context).colorScheme.surfaceVariant
+                  : Theme.of(context).colorScheme.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               Icons.notifications,
               color: isRead
-                  ? Colors.white.withAlpha((0.7 * 255).round())
-                  : const Color(0xFFE5BCE7),
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context).colorScheme.primary,
               size: 22,
             ),
           ),
@@ -132,7 +134,7 @@ class NotificationsScreen extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5BCE7),
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                 ),

@@ -3,9 +3,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:virtual_trading_app/onboarding/onboarding.dart';
 import 'package:virtual_trading_app/screens/home_page.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
@@ -19,10 +24,12 @@ class AuthGate extends StatelessWidget {
       // Build the appropriate page based on the auth state
       builder: (context, snapshot) {
         // loading...
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Scaffold(
+            backgroundColor: Color(0xff0a0a0a),
             body: Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
             ),
           );
         }
