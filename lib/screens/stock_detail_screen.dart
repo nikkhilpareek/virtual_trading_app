@@ -8,16 +8,13 @@ import 'package:intl/intl.dart';
 class StockDetailScreen extends StatelessWidget {
   final Holding holding;
 
-  const StockDetailScreen({
-    super.key,
-    required this.holding,
-  });
+  const StockDetailScreen({super.key, required this.holding});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => StockDetailBloc()
-        ..add(LoadStockDetail(holding.assetSymbol)),
+      create: (context) =>
+          StockDetailBloc()..add(LoadStockDetail(holding.assetSymbol)),
       child: _StockDetailView(holding: holding),
     );
   }
@@ -31,9 +28,9 @@ class _StockDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
@@ -66,19 +63,35 @@ class _StockDetailView extends StatelessWidget {
           IconButton(
             onPressed: () {
               context.read<StockDetailBloc>().add(
-                    RefreshStockDetail(holding.assetSymbol),
-                  );
+                RefreshStockDetail(holding.assetSymbol),
+              );
             },
-            icon: const Icon(Icons.refresh, color: Color(0xFFE5BCE7)),
+            icon: Icon(
+              Icons.refresh,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showSellDialog(context),
+        backgroundColor: Colors.red,
+        icon: const Icon(Icons.sell, color: Colors.white),
+        label: const Text(
+          'Sell',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: BlocBuilder<StockDetailBloc, StockDetailState>(
         builder: (context, state) {
           if (state is StockDetailLoading) {
             return const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFFE5BCE7),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             );
           }
@@ -109,12 +122,12 @@ class _StockDetailView extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         context.read<StockDetailBloc>().add(
-                              LoadStockDetail(holding.assetSymbol),
-                            );
+                          LoadStockDetail(holding.assetSymbol),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE5BCE7),
-                        foregroundColor: Colors.black,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
                       ),
                       child: const Text('Retry'),
                     ),
@@ -128,12 +141,12 @@ class _StockDetailView extends StatelessWidget {
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<StockDetailBloc>().add(
-                      RefreshStockDetail(holding.assetSymbol),
-                    );
+                  RefreshStockDetail(holding.assetSymbol),
+                );
                 await Future.delayed(const Duration(seconds: 1));
               },
-              color: const Color(0xFFE5BCE7),
-              backgroundColor: const Color(0xff121212),
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).colorScheme.surface,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Padding(
@@ -141,11 +154,11 @@ class _StockDetailView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildCurrentHoldingCard(state.holding),
+                      _buildCurrentHoldingCard(context, state.holding),
                       const SizedBox(height: 24),
-                      _buildStatisticsSection(state),
+                      _buildStatisticsSection(context, state),
                       const SizedBox(height: 24),
-                      _buildTransactionHistory(state.transactions),
+                      _buildTransactionHistory(context, state.transactions),
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -160,7 +173,7 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildCurrentHoldingCard(Holding? holdingData) {
+  Widget _buildCurrentHoldingCard(BuildContext context, Holding? holdingData) {
     final currentHolding = holdingData ?? holding;
     final isPositive = currentHolding.profitLoss >= 0;
 
@@ -171,13 +184,19 @@ class _StockDetailView extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFE5BCE7).withAlpha((0.2 * 255).round()),
-            const Color(0xFF9D4EDD).withAlpha((0.1 * 255).round()),
+            Theme.of(
+              context,
+            ).colorScheme.primary.withAlpha((0.2 * 255).round()),
+            Theme.of(
+              context,
+            ).colorScheme.primary.withAlpha((0.1 * 255).round()),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFE5BCE7).withAlpha((0.3 * 255).round()),
+          color: Theme.of(
+            context,
+          ).colorScheme.primary.withAlpha((0.3 * 255).round()),
           width: 1,
         ),
       ),
@@ -187,23 +206,26 @@ class _StockDetailView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Current Holdings',
                 style: TextStyle(
                   fontFamily: 'ClashDisplay',
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFE5BCE7),
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: currentHolding.assetType == AssetType.stock
                       ? Colors.blue.withAlpha((0.2 * 255).round())
                       : currentHolding.assetType == AssetType.crypto
-                          ? Colors.orange.withAlpha((0.2 * 255).round())
-                          : Colors.green.withAlpha((0.2 * 255).round()),
+                      ? Colors.orange.withAlpha((0.2 * 255).round())
+                      : Colors.green.withAlpha((0.2 * 255).round()),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -215,8 +237,8 @@ class _StockDetailView extends StatelessWidget {
                     color: currentHolding.assetType == AssetType.stock
                         ? Colors.blue
                         : currentHolding.assetType == AssetType.crypto
-                            ? Colors.orange
-                            : Colors.green,
+                        ? Colors.orange
+                        : Colors.green,
                   ),
                 ),
               ),
@@ -358,7 +380,10 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatisticsSection(StockDetailLoaded state) {
+  Widget _buildStatisticsSection(
+    BuildContext context,
+    StockDetailLoaded state,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -423,7 +448,7 @@ class _StockDetailView extends StatelessWidget {
                 'Buy Transactions',
                 '${state.buyTransactionCount}',
                 Icons.trending_up,
-                const Color(0xFFE5BCE7),
+                Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -432,7 +457,7 @@ class _StockDetailView extends StatelessWidget {
                 'Sell Transactions',
                 '${state.sellTransactionCount}',
                 Icons.trending_down,
-                const Color(0xFF9D4EDD),
+                Colors.red,
               ),
             ),
           ],
@@ -441,15 +466,18 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xff121212),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withAlpha((0.1 * 255).round()),
-        ),
+        border: Border.all(color: Colors.white.withAlpha((0.1 * 255).round())),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +513,10 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionHistory(List<Transaction> transactions) {
+  Widget _buildTransactionHistory(
+    BuildContext context,
+    List<Transaction> transactions,
+  ) {
     if (transactions.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
@@ -540,12 +571,14 @@ class _StockDetailView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        ...transactions.map((transaction) => _buildTransactionCard(transaction)),
+        ...transactions.map(
+          (transaction) => _buildTransactionCard(context, transaction),
+        ),
       ],
     );
   }
 
-  Widget _buildTransactionCard(Transaction transaction) {
+  Widget _buildTransactionCard(BuildContext context, Transaction transaction) {
     final isBuy = transaction.transactionType == TransactionType.buy;
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('hh:mm a');
@@ -706,14 +739,241 @@ class _StockDetailView extends StatelessWidget {
                 ),
                 Text(
                   CurrencyFormatter.formatINR(transaction.balanceAfter),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFE5BCE7),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show Sell Dialog
+  void _showSellDialog(BuildContext context) {
+    final quantityController = TextEditingController();
+    final currentPrice = holding.currentPrice ?? holding.averagePrice;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xff1a1a1a),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Sell ${holding.assetSymbol}',
+          style: const TextStyle(
+            fontFamily: 'ClashDisplay',
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current Price: ${CurrencyFormatter.formatINR(currentPrice)}',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 14,
+                color: Colors.white.withAlpha((0.7 * 255).round()),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Available: ${holding.quantity.toStringAsFixed(2)} units',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 14,
+                color: Colors.white.withAlpha((0.7 * 255).round()),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: quantityController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Quantity to Sell',
+                hintText: 'Max: ${holding.quantity.toStringAsFixed(2)}',
+                labelStyle: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
+                ),
+                hintStyle: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  color: Colors.white.withAlpha((0.3 * 255).round()),
+                ),
+                filled: true,
+                fillColor: const Color(0xff0a0a0a),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white.withAlpha((0.5 * 255).round()),
+              ),
+            ),
+          ),
+          // Use MultiBlocListener to listen to both TransactionBloc and CryptoBloc
+          MultiBlocListener(
+            listeners: [
+              BlocListener<TransactionBloc, TransactionState>(
+                listener: (context, state) {
+                  if (state is TransactionSuccess) {
+                    Navigator.pop(dialogContext);
+                    // Refresh the stock detail screen
+                    context.read<StockDetailBloc>().add(
+                      RefreshStockDetail(holding.assetSymbol),
+                    );
+                    // Refresh holdings
+                    context.read<HoldingsBloc>().add(const RefreshHoldings());
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else if (state is TransactionError) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+              ),
+              BlocListener<CryptoBloc, CryptoState>(
+                listener: (context, state) {
+                  if (state is CryptoTradeSuccess) {
+                    Navigator.pop(dialogContext);
+                    // Refresh the stock detail screen
+                    context.read<StockDetailBloc>().add(
+                      RefreshStockDetail(holding.assetSymbol),
+                    );
+                    // Refresh holdings
+                    context.read<HoldingsBloc>().add(const RefreshHoldings());
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else if (state is CryptoTradeError) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+            child: BlocBuilder<TransactionBloc, TransactionState>(
+              builder: (context, transactionState) {
+                return BlocBuilder<CryptoBloc, CryptoState>(
+                  builder: (context, cryptoState) {
+                    final isLoading =
+                        transactionState is TransactionExecuting ||
+                        cryptoState is CryptoTrading;
+
+                    return TextButton(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              final quantity = double.tryParse(
+                                quantityController.text,
+                              );
+                              if (quantity == null || quantity <= 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please enter a valid quantity',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (quantity > holding.quantity) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'You only have ${holding.quantity.toStringAsFixed(2)} units',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Execute sell order based on asset type
+                              if (holding.assetType == AssetType.crypto) {
+                                context.read<CryptoBloc>().add(
+                                  SellCrypto(
+                                    symbol: holding.assetSymbol,
+                                    quantity: quantity,
+                                    price: currentPrice,
+                                  ),
+                                );
+                              } else {
+                                context.read<TransactionBloc>().add(
+                                  ExecuteSellOrder(
+                                    assetSymbol: holding.assetSymbol,
+                                    assetName: holding.assetName,
+                                    assetType: holding.assetType,
+                                    quantity: quantity,
+                                    pricePerUnit: currentPrice,
+                                  ),
+                                );
+                              }
+                            },
+                      child: isLoading
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : const Text(
+                              'Sell',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

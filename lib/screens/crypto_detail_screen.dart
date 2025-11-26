@@ -198,7 +198,8 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
         lineTouchData: LineTouchData(
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (LineBarSpot spot) => const Color(0xff1a1a1a),
+            getTooltipColor: (LineBarSpot spot) =>
+                Theme.of(context).colorScheme.surface,
             tooltipRoundedRadius: 8,
             tooltipPadding: const EdgeInsets.all(8),
             getTooltipItems: (List<LineBarSpot> touchedSpots) {
@@ -221,9 +222,9 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                 return spotIndexes.map((index) {
                   return TouchedSpotIndicatorData(
                     FlLine(
-                      color: const Color(
-                        0xFFE5BCE7,
-                      ).withAlpha((0.5 * 255).round()),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.5),
                       strokeWidth: 2,
                     ),
                     FlDotData(
@@ -231,7 +232,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                       getDotPainter: (spot, percent, barData, index) {
                         return FlDotCirclePainter(
                           radius: 6,
-                          color: const Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                           strokeWidth: 2,
                           strokeColor: Colors.white,
                         );
@@ -280,13 +281,13 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     final isPositive = widget.crypto.changePercent24h >= 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
             // App Bar
             SliverAppBar(
-              backgroundColor: const Color(0xff0a0a0a),
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               elevation: 0,
               pinned: true,
               leading: IconButton(
@@ -519,12 +520,14 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE5BCE7) : const Color(0xff1a1a1a),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFE5BCE7)
-                : Colors.white.withAlpha((0.1 * 255).round()),
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).dividerColor,
           ),
         ),
         child: Text(

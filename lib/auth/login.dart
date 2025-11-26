@@ -115,7 +115,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -164,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                             fontFamily: 'ClashDisplay',
                             fontSize: isCompactScreen ? 36.0 : 42.0,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFE5BCE7),
+                            color: Theme.of(context).colorScheme.primary,
                             height: 1.1,
                           ),
                         ),
@@ -205,10 +205,10 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                           ),
                         ),
                         child: TextField(
@@ -253,10 +253,10 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withAlpha((0.1 * 255).round()),
+                            color: Theme.of(context).dividerColor,
                           ),
                         ),
                         child: TextField(
@@ -318,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
                           fontFamily: 'ClashDisplay',
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFFE5BCE7),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -333,8 +333,10 @@ class _LoginPageState extends State<LoginPage> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE5BCE7),
-                        foregroundColor: Colors.black,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28),
                         ),
@@ -460,7 +462,7 @@ class _LoginPageState extends State<LoginPage> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFE5BCE7),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),

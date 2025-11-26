@@ -39,17 +39,46 @@ class _AssetsScreenState extends State<AssetsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // Title
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Text(
-                'Assets',
-                style: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+            // Title and Reload Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Assets',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Reload both holdings and watchlist
+                      context.read<HoldingsBloc>().add(const RefreshHoldings());
+                      context.read<WatchlistBloc>().add(const LoadWatchlist());
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Refreshing assets...'),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.refresh,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                    tooltip: 'Reload Assets',
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),

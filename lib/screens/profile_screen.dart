@@ -388,31 +388,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Divider(color: Theme.of(context).dividerColor, height: 1, indent: 60),
-          BlocBuilder<ThemeBloc, ThemeState>(
-            builder: (context, themeState) {
-              return _buildSettingsTile(
-                icon: themeState.isDarkMode
-                    ? Icons.dark_mode
-                    : Icons.light_mode,
-                title: 'Dark Mode',
-                trailing: Switch(
-                  value: themeState.isDarkMode,
-                  onChanged: (value) {
-                    context.read<ThemeBloc>().add(const ToggleThemeEvent());
-                  },
-                  activeColor: Theme.of(context).primaryColor,
-                  activeTrackColor: Theme.of(
-                    context,
-                  ).primaryColor.withOpacity(0.5),
-                ),
-              );
-            },
-          ),
-          Divider(
-            color: Colors.white.withAlpha((0.1 * 255).round()),
-            height: 1,
-            indent: 60,
-          ),
           _buildSettingsTile(
             icon: Icons.security,
             title: 'Security',
