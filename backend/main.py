@@ -3,8 +3,49 @@ import yfinance as yf
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from datetime import datetime
+import asyncio
+from contextlib import asynccontextmanager
+import os
+from dotenv import load_dotenv
+from order_monitor import OrderMonitorService
 
-app = FastAPI(title="Stonks Trading API", version="1.0.0")
+# Load environment variables
+load_dotenv()
+
+# Global monitor service instance
+monitor_service = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan"""
+    global monitor_service
+    
+    # Startup
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+    
+    if supabase_url and supabase_key:
+        try:
+            monitor_service = OrderMonitorService(supabase_url, supabase_key)
+            await monitor_service.start()
+        except Exception as e:
+            print(f"❌ Failed to start order monitor: {e}")
+            monitor_service = None
+    else:
+        print("⚠️  SUPABASE_URL or SUPABASE_KEY not set - Order monitoring disabled")
+    
+    yield
+    
+    # Shutdown
+    if monitor_service:
+        await monitor_service.stop()
+
+app = FastAPI(
+    title="Virtual Trading API",
+    description="Backend API for Virtual Trading Application with Stop-Loss and Bracket Orders",
+    version="2.0.0",
+    lifespan=lifespan
+)
 
 # Allow Flutter (on localhost) to call the API
 app.add_middleware(

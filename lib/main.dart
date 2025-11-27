@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
           create: (context) => WatchlistBloc()..add(const LoadWatchlist()),
         ),
         BlocProvider(create: (context) => CryptoBloc()),
+        BlocProvider(create: (context) => OrderBloc()),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(
         builder: (context, themeState) {

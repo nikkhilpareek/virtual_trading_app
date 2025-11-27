@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
+import '../core/models/models.dart';
 import '../core/services/freecrypto_service.dart';
 import '../core/utils/currency_formatter.dart';
 import '../widgets/crypto_logo.dart';
@@ -446,7 +447,7 @@ class _CryptoScreenState extends State<CryptoScreen>
 
             // Buy Button
             IconButton(
-              onPressed: () => _showBuyDialog(crypto),
+              onPressed: () => _showTradeBottomSheet(crypto),
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -468,142 +469,903 @@ class _CryptoScreenState extends State<CryptoScreen>
     );
   }
 
-  /// Show Buy Dialog
-  void _showBuyDialog(CryptoQuote crypto) {
-    final quantityController = TextEditingController();
-
-    showDialog(
+  /// Show Trade Bottom Sheet with Stop-Loss and Bracket Order support
+  void _showTradeBottomSheet(CryptoQuote crypto) {
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Buy ${crypto.symbol}',
-          style: const TextStyle(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CryptoTradeBottomSheet(
+        symbol: crypto.symbol,
+        name: crypto.name,
+        currentPrice: crypto.price,
+      ),
+    );
+  }
+}
+
+/// Order type options for trading
+enum _CryptoOrderType { market, stopLoss, bracket }
+
+class _CryptoTradeBottomSheet extends StatefulWidget {
+  final String symbol;
+  final String name;
+  final double currentPrice;
+
+  const _CryptoTradeBottomSheet({
+    required this.symbol,
+    required this.name,
+    required this.currentPrice,
+  });
+
+  @override
+  State<_CryptoTradeBottomSheet> createState() =>
+      _CryptoTradeBottomSheetState();
+}
+
+class _CryptoTradeBottomSheetState extends State<_CryptoTradeBottomSheet> {
+  bool _isBuying = true;
+  _CryptoOrderType _orderType = _CryptoOrderType.market;
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _triggerPriceController = TextEditingController();
+  final TextEditingController _stopLossPriceController =
+      TextEditingController();
+  final TextEditingController _targetPriceController = TextEditingController();
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController.text = widget.currentPrice.toStringAsFixed(2);
+    _updateDefaultPrices();
+  }
+
+  void _updateDefaultPrices() {
+    final currentPrice = widget.currentPrice;
+    if (_isBuying) {
+      _triggerPriceController.text = (currentPrice * 0.95).toStringAsFixed(2);
+      _stopLossPriceController.text = (currentPrice * 0.95).toStringAsFixed(2);
+      _targetPriceController.text = (currentPrice * 1.10).toStringAsFixed(2);
+    } else {
+      _triggerPriceController.text = (currentPrice * 1.05).toStringAsFixed(2);
+      _stopLossPriceController.text = (currentPrice * 1.05).toStringAsFixed(2);
+      _targetPriceController.text = (currentPrice * 0.90).toStringAsFixed(2);
+    }
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _priceController.dispose();
+    _triggerPriceController.dispose();
+    _stopLossPriceController.dispose();
+    _targetPriceController.dispose();
+    super.dispose();
+  }
+
+  double get _totalAmount {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    final price = double.tryParse(_priceController.text) ?? 0;
+    return quantity * price;
+  }
+
+  void _executeTrade() async {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    final price = double.tryParse(_priceController.text) ?? 0;
+
+    if (quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid quantity')),
+      );
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
+    try {
+      switch (_orderType) {
+        case _CryptoOrderType.market:
+          await _executeMarketOrder(quantity, price);
+          break;
+        case _CryptoOrderType.stopLoss:
+          await _executeStopLossOrder(quantity);
+          break;
+        case _CryptoOrderType.bracket:
+          await _executeBracketOrder(quantity, price);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _executeMarketOrder(double quantity, double price) async {
+    if (price <= 0) {
+      throw Exception('Please enter valid price');
+    }
+
+    if (_isBuying) {
+      context.read<CryptoBloc>().add(
+        BuyCrypto(
+          symbol: widget.symbol,
+          name: widget.name,
+          quantity: quantity,
+          price: price,
+        ),
+      );
+    } else {
+      context.read<CryptoBloc>().add(
+        SellCrypto(symbol: widget.symbol, quantity: quantity, price: price),
+      );
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${_isBuying ? 'Buy' : 'Sell'} order executed successfully',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _executeStopLossOrder(double quantity) async {
+    final triggerPrice = double.tryParse(_triggerPriceController.text) ?? 0;
+
+    if (triggerPrice <= 0) {
+      throw Exception('Please enter valid trigger price');
+    }
+
+    context.read<OrderBloc>().add(
+      CreateStopLossOrder(
+        assetSymbol: widget.symbol,
+        assetName: widget.name,
+        assetType: AssetType.crypto,
+        orderSide: _isBuying ? OrderSide.buy : OrderSide.sell,
+        quantity: quantity,
+        triggerPrice: triggerPrice,
+        notes: 'Crypto stop-loss order',
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Stop-loss order created at ₹${triggerPrice.toStringAsFixed(2)}',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  Future<void> _executeBracketOrder(double quantity, double entryPrice) async {
+    if (entryPrice <= 0) {
+      throw Exception('Please enter valid entry price');
+    }
+
+    final stopLossPrice = double.tryParse(_stopLossPriceController.text) ?? 0;
+    final targetPrice = double.tryParse(_targetPriceController.text) ?? 0;
+
+    if (stopLossPrice <= 0 || targetPrice <= 0) {
+      throw Exception('Please enter valid stop-loss and target prices');
+    }
+
+    if (_isBuying) {
+      if (stopLossPrice >= entryPrice) {
+        throw Exception('Stop-loss must be below entry price for buy orders');
+      }
+      if (targetPrice <= entryPrice) {
+        throw Exception('Target must be above entry price for buy orders');
+      }
+    } else {
+      if (stopLossPrice <= entryPrice) {
+        throw Exception('Stop-loss must be above entry price for sell orders');
+      }
+      if (targetPrice >= entryPrice) {
+        throw Exception('Target must be below entry price for sell orders');
+      }
+    }
+
+    context.read<OrderBloc>().add(
+      CreateBracketOrder(
+        assetSymbol: widget.symbol,
+        assetName: widget.name,
+        assetType: AssetType.crypto,
+        orderSide: _isBuying ? OrderSide.buy : OrderSide.sell,
+        quantity: quantity,
+        entryPrice: entryPrice,
+        stopLossPrice: stopLossPrice,
+        targetPrice: targetPrice,
+        notes: 'Crypto bracket order',
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bracket order created: Entry ₹${entryPrice.toStringAsFixed(0)} | SL ₹${stopLossPrice.toStringAsFixed(0)} | Target ₹${targetPrice.toStringAsFixed(0)}',
+          ),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
+  Widget _buildOrderTypeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Order Type',
+          style: TextStyle(
             fontFamily: 'ClashDisplay',
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withAlpha((0.7 * 255).round()),
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 8),
+        Row(
           children: [
-            Text(
-              'Current Price: ${CurrencyFormatter.formatINR(crypto.price)}',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 14,
-                color: Colors.white.withAlpha((0.7 * 255).round()),
+            _buildOrderTypeChip(
+              label: 'Market',
+              icon: Icons.flash_on,
+              isSelected: _orderType == _CryptoOrderType.market,
+              onTap: () => setState(() => _orderType = _CryptoOrderType.market),
+            ),
+            const SizedBox(width: 8),
+            _buildOrderTypeChip(
+              label: 'Stop-Loss',
+              icon: Icons.shield,
+              isSelected: _orderType == _CryptoOrderType.stopLoss,
+              onTap: () =>
+                  setState(() => _orderType = _CryptoOrderType.stopLoss),
+            ),
+            const SizedBox(width: 8),
+            _buildOrderTypeChip(
+              label: 'Bracket',
+              icon: Icons.account_tree,
+              isSelected: _orderType == _CryptoOrderType.bracket,
+              onTap: () =>
+                  setState(() => _orderType = _CryptoOrderType.bracket),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOrderTypeChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final color = isSelected
+        ? const Color(0xFFE5BCE7)
+        : Colors.white.withAlpha((0.5 * 255).round());
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFE5BCE7).withAlpha((0.15 * 255).round())
+                : const Color(0xff1a1a1a),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE5BCE7) : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStopLossInputs() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withAlpha((0.1 * 255).round()),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Colors.orange.withAlpha((0.3 * 255).round()),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.orange, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _isBuying
+                      ? 'Order triggers when price drops to trigger price'
+                      : 'Order triggers when price rises to trigger price',
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 12,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _triggerPriceController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'ClashDisplay',
+          ),
+          decoration: InputDecoration(
+            labelText: 'Trigger Price (₹)',
+            labelStyle: TextStyle(
+              color: Colors.white.withAlpha((0.5 * 255).round()),
+              fontFamily: 'ClashDisplay',
+            ),
+            prefixIcon: const Icon(Icons.trending_down, color: Colors.orange),
+            filled: true,
+            fillColor: const Color(0xff1a1a1a),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBracketInputs() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withAlpha((0.1 * 255).round()),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: Colors.blue.withAlpha((0.3 * 255).round()),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.blue, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Entry executes now. Stop-loss & target orders created automatically.',
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 12,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _stopLossPriceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'ClashDisplay',
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Stop-Loss (₹)',
+                  labelStyle: TextStyle(
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 13,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.shield,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff1a1a1a),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: quantityController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: const TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                labelStyle: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  color: Colors.white.withAlpha((0.5 * 255).round()),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _targetPriceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
-                filled: true,
-                fillColor: Theme.of(context).scaffoldBackgroundColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'ClashDisplay',
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Target (₹)',
+                  labelStyle: TextStyle(
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 13,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.flag,
+                    color: Colors.green,
+                    size: 20,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff1a1a1a),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white.withAlpha((0.5 * 255).round()),
-              ),
-            ),
+        if (_orderType == _CryptoOrderType.bracket) ...[
+          const SizedBox(height: 12),
+          _buildRiskRewardInfo(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRiskRewardInfo() {
+    final entryPrice = double.tryParse(_priceController.text) ?? 0;
+    final stopLoss = double.tryParse(_stopLossPriceController.text) ?? 0;
+    final target = double.tryParse(_targetPriceController.text) ?? 0;
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+
+    if (entryPrice <= 0 || stopLoss <= 0 || target <= 0 || quantity <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    final potentialLoss = (entryPrice - stopLoss).abs() * quantity;
+    final potentialProfit = (target - entryPrice).abs() * quantity;
+    final riskReward = potentialLoss > 0
+        ? potentialProfit / potentialLoss
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xff1a1a1a),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildRiskRewardItem(
+            'Risk',
+            '₹${potentialLoss.toStringAsFixed(0)}',
+            Colors.red,
           ),
-          BlocConsumer<CryptoBloc, CryptoState>(
-            listener: (context, state) {
-              if (state is CryptoTradeSuccess) {
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else if (state is CryptoTradeError) {
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            builder: (context, state) {
-              final isLoading = state is CryptoTrading;
-
-              return TextButton(
-                onPressed: isLoading
-                    ? null
-                    : () {
-                        final quantity = double.tryParse(
-                          quantityController.text,
-                        );
-                        if (quantity == null || quantity <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter a valid quantity'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        context.read<CryptoBloc>().add(
-                          BuyCrypto(
-                            symbol: crypto.symbol,
-                            name: crypto.name,
-                            quantity: quantity,
-                            price: crypto.price,
-                          ),
-                        );
-                      },
-                child: isLoading
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : Text(
-                        'Buy',
-                        style: TextStyle(
-                          fontFamily: 'ClashDisplay',
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              );
-            },
+          Container(
+            width: 1,
+            height: 30,
+            color: Colors.white.withAlpha((0.1 * 255).round()),
+          ),
+          _buildRiskRewardItem(
+            'Reward',
+            '₹${potentialProfit.toStringAsFixed(0)}',
+            Colors.green,
+          ),
+          Container(
+            width: 1,
+            height: 30,
+            color: Colors.white.withAlpha((0.1 * 255).round()),
+          ),
+          _buildRiskRewardItem(
+            'R:R',
+            '1:${riskReward.toStringAsFixed(1)}',
+            const Color(0xFFE5BCE7),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRiskRewardItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 11,
+            color: Colors.white.withAlpha((0.5 * 255).round()),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getButtonText() {
+    switch (_orderType) {
+      case _CryptoOrderType.market:
+        return '${_isBuying ? 'Buy' : 'Sell'} ${widget.symbol}';
+      case _CryptoOrderType.stopLoss:
+        return 'Create Stop-Loss Order';
+      case _CryptoOrderType.bracket:
+        return 'Create Bracket Order';
+    }
+  }
+
+  Color _getButtonColor() {
+    switch (_orderType) {
+      case _CryptoOrderType.market:
+        return _isBuying ? Colors.green : Colors.red;
+      case _CryptoOrderType.stopLoss:
+        return Colors.orange;
+      case _CryptoOrderType.bracket:
+        return Colors.blue;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<OrderBloc, OrderState>(
+      listener: (context, state) {
+        if (state is OrderError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+          setState(() => _isProcessing = false);
+        }
+      },
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xff0a0a0a),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      CryptoLogo(symbol: widget.symbol, size: 36, fontSize: 12),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Trade ${widget.symbol}',
+                            style: const TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            widget.name,
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              color: Colors.white.withAlpha(
+                                (0.5 * 255).round(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Order Type Selector
+              _buildOrderTypeSelector(),
+              const SizedBox(height: 20),
+
+              // Buy/Sell Toggle
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isBuying = true;
+                          _updateDefaultPrices();
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _isBuying
+                              ? Colors.green
+                              : const Color(0xff1a1a1a),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Buy',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _isBuying
+                                  ? Colors.white
+                                  : Colors.white.withAlpha((0.5 * 255).round()),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isBuying = false;
+                          _updateDefaultPrices();
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_isBuying
+                              ? Colors.red
+                              : const Color(0xff1a1a1a),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Sell',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: !_isBuying
+                                  ? Colors.white
+                                  : Colors.white.withAlpha((0.5 * 255).round()),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Quantity Input
+              TextField(
+                controller: _quantityController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'ClashDisplay',
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Quantity',
+                  labelStyle: TextStyle(
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
+                    fontFamily: 'ClashDisplay',
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff1a1a1a),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+
+              // Price Input (for Market and Bracket orders)
+              if (_orderType != _CryptoOrderType.stopLoss) ...[
+                TextField(
+                  controller: _priceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'ClashDisplay',
+                  ),
+                  decoration: InputDecoration(
+                    labelText: _orderType == _CryptoOrderType.bracket
+                        ? 'Entry Price (₹)'
+                        : 'Price per unit (₹)',
+                    labelStyle: TextStyle(
+                      color: Colors.white.withAlpha((0.5 * 255).round()),
+                      fontFamily: 'ClashDisplay',
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xff1a1a1a),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Stop-Loss specific inputs
+              if (_orderType == _CryptoOrderType.stopLoss)
+                _buildStopLossInputs(),
+
+              // Bracket order specific inputs
+              if (_orderType == _CryptoOrderType.bracket) _buildBracketInputs(),
+
+              const SizedBox(height: 20),
+
+              // Total Amount
+              if (_orderType == _CryptoOrderType.market ||
+                  _orderType == _CryptoOrderType.bracket)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff1a1a1a),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _orderType == _CryptoOrderType.bracket
+                            ? 'Entry Amount'
+                            : 'Total Amount',
+                        style: const TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        CurrencyFormatter.formatINR(_totalAmount),
+                        style: const TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE5BCE7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 20),
+
+              // Execute Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isProcessing ? null : _executeTrade,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _getButtonColor(),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    disabledBackgroundColor: Colors.grey,
+                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          _getButtonText(),
+                          style: const TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
