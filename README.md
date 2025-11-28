@@ -41,13 +41,84 @@ A easy to use app for learning stock trading. Use the In-App Currency to buy/sel
 
 For detailed backend setup instructions, see [backend/README.md](backend/README.md)
 
+---
+
+## 🎯 NEW: Stop-Loss & Bracket Orders
+
+**Automated risk management is now available!**
+
+### 📚 Documentation
+
+- **[QUICK_START_ORDERS.md](QUICK_START_ORDERS.md)** - 5-minute setup guide with code examples
+- **[ORDER_IMPLEMENTATION.md](ORDER_IMPLEMENTATION.md)** - Complete technical documentation
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Feature overview & architecture
+
+### ⚡ Quick Setup
+
+```bash
+# 1. Run database migration (Supabase SQL Editor)
+# Copy-paste: database/orders_table.sql
+
+# 2. Install backend dependencies
+cd backend
+pip install -r requirements.txt
+
+# 3. Start backend (order monitor auto-starts)
+./start.sh
+
+# 4. Update Flutter dependencies
+flutter pub get
+
+# 5. Run app
+flutter run
+```
+
+### 💡 Usage Example
+
+```dart
+// Create stop-loss order
+context.read<OrderBloc>().add(
+  CreateStopLossOrder(
+    assetSymbol: 'RELIANCE',
+    assetName: 'Reliance Industries',
+    assetType: AssetType.stock,
+    orderSide: OrderSide.sell,
+    quantity: 10,
+    triggerPrice: 2450.0,  // Auto-sell at ₹2450
+  ),
+);
+
+// Create bracket order (entry + stop-loss + target)
+context.read<OrderBloc>().add(
+  CreateBracketOrder(
+    assetSymbol: 'BTC',
+    assetName: 'Bitcoin',
+    assetType: AssetType.crypto,
+    orderSide: OrderSide.buy,
+    quantity: 0.01,
+    entryPrice: 7500000.0,      // ₹75L entry
+    stopLossPrice: 7000000.0,   // ₹70L stop (limit loss)
+    targetPrice: 8500000.0,     // ₹85L target (lock profit)
+  ),
+);
+```
+
+**See [QUICK_START_ORDERS.md](QUICK_START_ORDERS.md) for complete usage guide.**
+
+---
+
 ## Features (Planned to be Added in the App)
 - ✅ Real-Time Stock Prices using YFinance API
     1. ✅ Indian Stock Markets (NSE/BSE) - RELIANCE, TCS, INFY, etc.
     2. ✅ Cryptocurrency prices (BTC, ETH, BNB)
     3. 🔄 Global Exchanges (Future Feature)
 - ✅ Buy/Sell Orders - Basic Buy/Sell feature
-- 🔄 More advanced Buying/Selling Feature (ex. Limit Order, Stop-Loss etc.)
+- ✅ **Advanced Order Types** ⭐ NEW!
+    - ✅ **Stop-Loss Orders** - Automatic sell when price drops to limit losses
+    - ✅ **Bracket Orders** - Entry + Stop-Loss + Take-Profit in one order
+    - ✅ **Background Monitoring** - Orders execute automatically 24/7
+    - ✅ **Balance Reservation** - Funds locked for pending buy orders
+    - ✅ **Auto-Cancellation** - Bracket order sibling cancels when one fills
 - ✅ Watchlist - For Tracking Stocks the user is interested in
 - 🔄 Achievements - Different simple in app tasks for user to earn extra in app currency
 

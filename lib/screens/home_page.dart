@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'learn_screen.dart';
 import 'crypto_screen.dart';
+import 'orders_screen.dart';
 import 'dart:ui';
 
 class HomePage extends StatefulWidget {
@@ -1050,6 +1051,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        // Orders Button - Full width
+        _buildActionButton(
+          'View Orders',
+          Icons.pending_actions,
+          const Color(0xFFE5BCE7),
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OrdersScreen()),
+            );
+          },
         ),
         const SizedBox(height: 12),
       ],
