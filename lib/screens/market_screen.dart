@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/services/yfinance_service.dart';
+import '../core/services/local_price_service.dart';
 import '../core/utils/currency_formatter.dart';
 import 'market_stock_detail_screen.dart';
 import 'dart:developer' as developer;
@@ -49,21 +51,37 @@ class MarketAsset {
 // Prices will be fetched from YFinance API via FastAPI backend
 const List<Map<String, dynamic>> _assetDefinitions = [
   // Indian Stocks (NSE)
-  {'symbol': 'RELIANCE', 'name': 'Reliance Industries', 'type': AssetType.stock},
-  {'symbol': 'TCS', 'name': 'Tata Consultancy Services', 'type': AssetType.stock},
+  {
+    'symbol': 'RELIANCE',
+    'name': 'Reliance Industries',
+    'type': AssetType.stock,
+  },
+  {
+    'symbol': 'TCS',
+    'name': 'Tata Consultancy Services',
+    'type': AssetType.stock,
+  },
   {'symbol': 'INFY', 'name': 'Infosys Limited', 'type': AssetType.stock},
   {'symbol': 'HDFCBANK', 'name': 'HDFC Bank', 'type': AssetType.stock},
   {'symbol': 'ICICIBANK', 'name': 'ICICI Bank', 'type': AssetType.stock},
   {'symbol': 'BHARTIARTL', 'name': 'Bharti Airtel', 'type': AssetType.stock},
   {'symbol': 'ITC', 'name': 'ITC Limited', 'type': AssetType.stock},
   {'symbol': 'WIPRO', 'name': 'Wipro Limited', 'type': AssetType.stock},
-  {'symbol': 'HINDUNILVR', 'name': 'Hindustan Unilever', 'type': AssetType.stock},
+  {
+    'symbol': 'HINDUNILVR',
+    'name': 'Hindustan Unilever',
+    'type': AssetType.stock,
+  },
   {'symbol': 'LT', 'name': 'Larsen & Toubro', 'type': AssetType.stock},
   {'symbol': 'SBIN', 'name': 'State Bank of India', 'type': AssetType.stock},
   {'symbol': 'AXISBANK', 'name': 'Axis Bank', 'type': AssetType.stock},
   {'symbol': 'BAJFINANCE', 'name': 'Bajaj Finance', 'type': AssetType.stock},
   {'symbol': 'HCLTECH', 'name': 'HCL Technologies', 'type': AssetType.stock},
-  {'symbol': 'KOTAKBANK', 'name': 'Kotak Mahindra Bank', 'type': AssetType.stock},
+  {
+    'symbol': 'KOTAKBANK',
+    'name': 'Kotak Mahindra Bank',
+    'type': AssetType.stock,
+  },
 ];
 
 class MarketScreen extends StatefulWidget {
@@ -73,41 +91,85 @@ class MarketScreen extends StatefulWidget {
   State<MarketScreen> createState() => _MarketScreenState();
 }
 
-class _MarketScreenState extends State<MarketScreen> {
+class _MarketScreenState extends State<MarketScreen>
+    with WidgetsBindingObserver {
   final YFinanceService _apiService = YFinanceService();
+  final LocalPriceService _localPriceService = LocalPriceService();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _refreshTimer;
   Timer? _searchDebounce;
-  
+
   String _searchQuery = '';
   List<MarketAsset> _searchResults = [];
   bool _isSearching = false;
-  
+
   List<MarketAsset> _marketData = [];
   bool _isLoading = true;
   String? _errorMessage;
-  DateTime? _lastRefresh;
+  bool _useLocalPrices = true; // Use local JSON by default
 
   @override
   void initState() {
     super.initState();
-    _loadMarketData();
-    // Start continuous refresh every 5 seconds (not 1 second to avoid overwhelming the API)
+    WidgetsBinding.instance.addObserver(this);
+    _initializeAndLoadData();
+    // Start continuous refresh every 5 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (!_isLoading) {
+      if (!_isLoading && mounted) {
         _loadMarketData(silent: true);
       }
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever market screen comes into view
+    if (mounted && !_isLoading) {
+      _loadMarketData(silent: true);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Dismiss keyboard when app goes to background
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _searchFocusNode.unfocus();
+    }
+  }
+
+  Future<void> _initializeAndLoadData() async {
+    try {
+      await _localPriceService.loadPrices();
+      developer.log('Local prices loaded successfully', name: 'MarketScreen');
+      _loadMarketData();
+    } catch (e) {
+      developer.log('Error loading local prices: $e', name: 'MarketScreen');
+      setState(() {
+        _useLocalPrices = false;
+      });
+      _loadMarketData();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _refreshTimer?.cancel();
     _searchDebounce?.cancel();
     super.dispose();
   }
-  
+
+  // Public method to dismiss keyboard - called when PageView changes
+  void dismissKeyboard() {
+    _searchFocusNode.unfocus();
+  }
+
   Future<void> _performSearch(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -116,50 +178,83 @@ class _MarketScreenState extends State<MarketScreen> {
       });
       return;
     }
-    
+
     setState(() {
       _isSearching = true;
     });
-    
+
     try {
-      final results = await _apiService.searchStocks(query);
-      
-      // Fetch prices for search results in batch
-      List<MarketAsset> searchAssets = [];
-      final searchSymbols = results.take(10).map((r) => r.symbol).toList();
-      
-      if (searchSymbols.isNotEmpty) {
-        final quotes = await _apiService.getMultipleStockQuotes(searchSymbols);
-        for (var quote in quotes) {
-          searchAssets.add(MarketAsset(
-            symbol: quote.symbol,
-            name: quote.name,
-            currentPrice: quote.price,
-            changePercentage: quote.changePercent,
-            type: AssetType.stock,
-            lastUpdated: DateTime.now(),
-          ));
+      // Use compute for multithreaded search - production level
+      final results = await compute(_searchInIsolate, {
+        'query': query.toLowerCase(),
+        'marketData': _marketData,
+      });
+
+      // API search as fallback
+      if (results.isEmpty) {
+        final apiResults = await _apiService.searchStocks(query);
+        final searchSymbols = apiResults.take(10).map((r) => r.symbol).toList();
+
+        if (searchSymbols.isNotEmpty) {
+          final quotes = await _apiService.getMultipleStockQuotes(
+            searchSymbols,
+          );
+          List<MarketAsset> searchAssets = [];
+          for (var quote in quotes) {
+            searchAssets.add(
+              MarketAsset(
+                symbol: quote.symbol,
+                name: quote.name,
+                currentPrice: quote.price,
+                changePercentage: quote.changePercent,
+                type: AssetType.stock,
+                lastUpdated: DateTime.now(),
+              ),
+            );
+          }
+
+          if (mounted && _searchQuery.toLowerCase() == query.toLowerCase()) {
+            setState(() {
+              _searchResults = searchAssets;
+              _isSearching = false;
+            });
+          }
+          return;
         }
       }
-      
-      if (mounted) {
+
+      // Only update if still mounted and query hasn't changed
+      if (mounted && _searchQuery.toLowerCase() == query.toLowerCase()) {
         setState(() {
-          _searchResults = searchAssets;
+          _searchResults = results;
           _isSearching = false;
         });
       }
     } catch (e) {
-      developer.log('Error searching stocks: $e');
+      developer.log('Search error: $e', name: 'MarketScreen');
       if (mounted) {
-        setState(() {
-          _searchResults = [];
-          _isSearching = false;
-        });
+        setState(() => _isSearching = false);
       }
     }
   }
 
+  // Static isolate function for multithreaded search
+  static List<MarketAsset> _searchInIsolate(Map<String, dynamic> params) {
+    final String query = params['query'] as String;
+    final List<MarketAsset> data = params['marketData'] as List<MarketAsset>;
+
+    return data
+        .where(
+          (asset) =>
+              asset.symbol.toLowerCase().contains(query) ||
+              asset.name.toLowerCase().contains(query),
+        )
+        .toList();
+  }
+
   Future<void> _loadMarketData({bool silent = false}) async {
+    if (!mounted) return;
+
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -167,112 +262,123 @@ class _MarketScreenState extends State<MarketScreen> {
       });
     }
 
-    developer.log('Starting to load market data... (silent: $silent)', name: 'MarketScreen');
+    developer.log(
+      'Starting to load market data from ${_useLocalPrices ? "local JSON" : "API"}... (silent: $silent)',
+      name: 'MarketScreen',
+    );
 
     try {
       final List<MarketAsset> assets = [];
 
-      // Load stocks
-      final stockSymbols = _assetDefinitions
-          .where((a) => a['type'] == AssetType.stock)
-          .map((a) => a['symbol'] as String)
-          .toList();
+      if (_useLocalPrices) {
+        // Load from local JSON
+        final availableSymbols = _localPriceService.getAvailableSymbols();
+        developer.log(
+          'Loading ${availableSymbols.length} stocks from JSON',
+          name: 'MarketScreen',
+        );
 
-      developer.log('Loading ${stockSymbols.length} stocks', name: 'MarketScreen');
-
-      // Use batch fetching for better performance
-      try {
-        developer.log('Fetching quotes for ${stockSymbols.length} stocks in batch', name: 'MarketScreen');
-        final quotes = await _apiService.getMultipleStockQuotes(stockSymbols);
-        
-        for (final quote in quotes) {
+        for (final symbol in availableSymbols) {
           final assetDef = _assetDefinitions.firstWhere(
-            (a) => a['symbol'] == quote.symbol,
-            orElse: () => {'symbol': quote.symbol, 'name': quote.name, 'type': AssetType.stock},
+            (a) => a['symbol'] == symbol,
+            orElse: () => {
+              'symbol': symbol,
+              'name': symbol,
+              'type': AssetType.stock,
+            },
           );
-          developer.log('Got quote for ${quote.symbol}: ${quote.price}', name: 'MarketScreen');
-          assets.add(MarketAsset(
-            symbol: quote.symbol,
-            name: assetDef['name'] as String,
-            currentPrice: quote.price,
-            changePercentage: quote.changePercent,
-            type: AssetType.stock,
-            lastUpdated: DateTime.now(),
-          ));
-        }
-      } catch (e, st) {
-        developer.log('Error loading stocks in batch', name: 'MarketScreen', error: e, stackTrace: st);
-      }
 
-      // Load crypto
-      final cryptoSymbols = _assetDefinitions
-          .where((a) => a['type'] == AssetType.crypto)
-          .map((a) => a['symbol'] as String)
-          .toList();
+          final price = _localPriceService.getCurrentPrice(symbol);
+          final changePercent = _localPriceService.getChangePercent(symbol);
 
-      for (final symbol in cryptoSymbols) {
-        final assetDef = _assetDefinitions.firstWhere((a) => a['symbol'] == symbol);
-        try {
-          final quote = await _apiService.getCryptoQuote(symbol);
-          if (quote != null) {
-            assets.add(MarketAsset(
-              symbol: symbol,
-              name: assetDef['name'] as String,
-              currentPrice: quote.price,
-              changePercentage: quote.changePercent,
-              type: AssetType.crypto,
-              lastUpdated: DateTime.now(),
-            ));
+          if (price != null) {
+            assets.add(
+              MarketAsset(
+                symbol: symbol,
+                name: assetDef['name'] as String,
+                currentPrice: price,
+                changePercentage: changePercent,
+                type: AssetType.stock,
+                lastUpdated: DateTime.now(),
+              ),
+            );
+            developer.log(
+              'Loaded $symbol: ₹$price (${changePercent.toStringAsFixed(2)}%)',
+              name: 'MarketScreen',
+            );
           }
-        } catch (e,st) {
-          developer.log('Error loading crypto $symbol', name: 'MarketScreen', error: e, stackTrace:st);
         }
-      }
+      } else {
+        // Load from API (fallback)
+        final stockSymbols = _assetDefinitions
+            .where((a) => a['type'] == AssetType.stock)
+            .map((a) => a['symbol'] as String)
+            .toList();
 
-      // Load mutual funds (using stock quotes from YFinance)
-      final mutualFundSymbols = _assetDefinitions
-          .where((a) => a['type'] == AssetType.mutualFund)
-          .toList();
+        developer.log(
+          'Loading ${stockSymbols.length} stocks from API',
+          name: 'MarketScreen',
+        );
 
-      for (final assetDef in mutualFundSymbols) {
         try {
-          final quote = await _apiService.getStockQuote(assetDef['symbol'] as String);
-          if (quote != null) {
-            assets.add(MarketAsset(
-              symbol: assetDef['symbol'] as String,
-              name: assetDef['name'] as String,
-              currentPrice: quote.price,
-              changePercentage: quote.changePercent,
-              type: AssetType.mutualFund,
-              lastUpdated: DateTime.now(),
-            ));
+          final quotes = await _apiService.getMultipleStockQuotes(stockSymbols);
+
+          for (final quote in quotes) {
+            final assetDef = _assetDefinitions.firstWhere(
+              (a) => a['symbol'] == quote.symbol,
+              orElse: () => {
+                'symbol': quote.symbol,
+                'name': quote.name,
+                'type': AssetType.stock,
+              },
+            );
+            assets.add(
+              MarketAsset(
+                symbol: quote.symbol,
+                name: assetDef['name'] as String,
+                currentPrice: quote.price,
+                changePercentage: quote.changePercent,
+                type: AssetType.stock,
+                lastUpdated: DateTime.now(),
+              ),
+            );
           }
-        } catch (e,st) {
-          developer.log('Error loading mutual fund ${assetDef['symbol']}', name: 'MarketScreen', error: e, stackTrace: st);
-          // Add placeholder data for mutual funds if API fails
-          assets.add(MarketAsset(
-            symbol: assetDef['symbol'] as String,
-            name: assetDef['name'] as String,
-            currentPrice: 0.0, // Will show as unavailable
-            changePercentage: 0.0,
-            type: AssetType.mutualFund,
-            lastUpdated: null,
-          ));
+        } catch (e, st) {
+          developer.log(
+            'Error loading stocks from API',
+            name: 'MarketScreen',
+            error: e,
+            stackTrace: st,
+          );
         }
       }
 
-      setState(() {
-        _marketData = assets;
-        _isLoading = false;
-        _lastRefresh = DateTime.now();
-      });
-      developer.log('Market data loaded successfully: ${assets.length} assets', name: 'MarketScreen');
+      // Skip crypto and mutual funds when using local JSON
+      // (JSON only has stock data)
+
+      if (mounted) {
+        setState(() {
+          _marketData = assets;
+          _isLoading = false;
+        });
+      }
+      developer.log(
+        'Market data loaded successfully: ${assets.length} assets',
+        name: 'MarketScreen',
+      );
     } catch (e, st) {
-      developer.log('Fatal error loading market data', name: 'MarketScreen', error: e, stackTrace: st);
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to load market data: $e';
-      });
+      developer.log(
+        'Fatal error loading market data',
+        name: 'MarketScreen',
+        error: e,
+        stackTrace: st,
+      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load market data: $e';
+        });
+      }
     }
   }
 
@@ -281,12 +387,40 @@ class _MarketScreenState extends State<MarketScreen> {
     await _loadMarketData();
   }
 
+  String _getCompanyDomain(String symbol) {
+    // Map stock symbols to company domains for logo API
+    const domainMap = {
+      'RELIANCE': 'ril',
+      'TCS': 'tcs',
+      'INFY': 'infosys',
+      'HDFCBANK': 'hdfcbank',
+      'ICICIBANK': 'icicibank',
+      'HINDUNILVR': 'hul',
+      'ITC': 'itcportal',
+      'SBIN': 'onlinesbi',
+      'BHARTIARTL': 'airtel',
+      'KOTAKBANK': 'kotak',
+      'LT': 'larsentoubro',
+      'ASIANPAINT': 'asianpaints',
+      'AXISBANK': 'axisbank',
+      'MARUTI': 'marutisuzuki',
+      'TITAN': 'titan',
+      'SUNPHARMA': 'sunpharma',
+      'WIPRO': 'wipro',
+      'ULTRACEMCO': 'ultratechcement',
+      'NESTLEIND': 'nestle',
+      'BAJFINANCE': 'bajajfinserv',
+    };
+
+    return domainMap[symbol] ?? symbol.toLowerCase();
+  }
+
   List<MarketAsset> get _filteredAssets {
     // If searching, return search results
     if (_searchQuery.isNotEmpty) {
       return _searchResults;
     }
-    
+
     // Otherwise return the default market data
     return _marketData;
   }
@@ -294,184 +428,212 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
-      appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
-        elevation: 0,
-        title: Column(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      extendBody: true,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Market',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            const SizedBox(height: 20),
+
+            // Title and Reload Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Market',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  // Reload Button
+                  IconButton(
+                    onPressed: _isLoading ? null : _refreshData,
+                    icon: Icon(
+                      Icons.refresh,
+                      color: _isLoading ? Colors.grey : Colors.white,
+                    ),
+                    tooltip: 'Reload',
+                  ),
+                ],
               ),
             ),
-            if (_lastRefresh != null)
-              Text(
-                'Last updated: ${_formatTime(_lastRefresh!)}',
-                style: TextStyle(
+
+            const SizedBox(height: 16),
+
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                showCursor: true,
+                enableInteractiveSelection: true,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+
+                  // Debounce search - production level 300ms
+                  _searchDebounce?.cancel();
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 300),
+                    () => _performSearch(value),
+                  );
+                },
+                onTap: () {
+                  // Ensure cursor is visible only when tapped
+                  if (!_searchFocusNode.hasFocus) {
+                    _searchFocusNode.requestFocus();
+                  }
+                },
+                style: const TextStyle(
                   fontFamily: 'ClashDisplay',
-                  fontSize: 12,
-                  color: Colors.white.withAlpha((0.5 * 255).round()),
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search any stock (e.g., ANGELONE, ZOMATO)...',
+                  hintStyle: TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 13,
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
+                  ),
+                  prefixIcon: _isSearching
+                      ? Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          Icons.search,
+                          color: Colors.white.withAlpha((0.5 * 255).round()),
+                        ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white),
+                          onPressed: () {
+                            _searchController.clear();
+                            _searchFocusNode.unfocus();
+                            setState(() {
+                              _searchQuery = '';
+                              _searchResults = [];
+                              _isSearching = false;
+                            });
+                            _searchDebounce?.cancel();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
                 ),
               ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Market Content
+            Expanded(
+              child: _isLoading && _marketData.isEmpty
+                  ? _buildLoadingState()
+                  : _errorMessage != null && _marketData.isEmpty
+                  ? _buildErrorState()
+                  : _buildMarketList(),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh,
-              color: _isLoading ? Colors.grey : const Color(0xFFE5BCE7),
-            ),
-            onPressed: _isLoading ? null : _refreshData,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _isLoading && _marketData.isEmpty
-          ? _buildLoadingState()
-          : _errorMessage != null && _marketData.isEmpty
-              ? _buildErrorState()
-              : Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-                
-                // Debounce search
-                _searchDebounce?.cancel();
-                _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-                  _performSearch(value);
-                });
-              },
-              style: const TextStyle(
-                fontFamily: 'ClashDisplay',
-                color: Colors.white,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Search any stock (e.g., ANGELONE, ZOMATO)...',
-                hintStyle: TextStyle(
-                  fontFamily: 'ClashDisplay',
-                  fontSize: 13,
-                  color: Colors.white.withAlpha((0.5 * 255).round()),
-                ),
-                prefixIcon: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5BCE7)),
-                          ),
-                        ),
-                      )
-                    : Icon(
-                        Icons.search,
-                        color: Colors.white.withAlpha((0.5 * 255).round()),
-                      ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                            _searchResults = [];
-                            _isSearching = false;
-                          });
-                          _searchDebounce?.cancel();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xff1a1a1a),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Market list
-          Expanded(
-            child: BlocBuilder<WatchlistBloc, WatchlistState>(
-              builder: (context, watchlistState) {
-                if (_filteredAssets.isEmpty && _searchQuery.isNotEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.white.withAlpha((0.3 * 255).round()),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No stocks found',
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withAlpha((0.7 * 255).round()),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Try searching with a different keyword',
-                          style: TextStyle(
-                            fontFamily: 'ClashDisplay',
-                            fontSize: 14,
-                            color: Colors.white.withAlpha((0.5 * 255).round()),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  itemCount: _filteredAssets.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final asset = _filteredAssets[index];
-                    
-                    // Check if in watchlist
-                    bool isInWatchlist = false;
-                    if (watchlistState is WatchlistLoaded) {
-                      isInWatchlist = watchlistState.isWatched(asset.symbol);
-                    }
-                    
-                    return _buildAssetCard(asset, isInWatchlist, context);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildAssetCard(MarketAsset asset, bool isInWatchlist, BuildContext context) {
+  Widget _buildMarketList() {
+    return BlocBuilder<WatchlistBloc, WatchlistState>(
+      builder: (context, watchlistState) {
+        if (_filteredAssets.isEmpty && _searchQuery.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 64,
+                  color: Colors.white.withAlpha((0.3 * 255).round()),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No stocks found',
+                  style: TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withAlpha((0.7 * 255).round()),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try searching with a different keyword',
+                  style: TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 14,
+                    color: Colors.white.withAlpha((0.5 * 255).round()),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          itemCount: _filteredAssets.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final asset = _filteredAssets[index];
+
+            // Check if in watchlist
+            bool isInWatchlist = false;
+            if (watchlistState is WatchlistLoaded) {
+              isInWatchlist = watchlistState.isWatched(asset.symbol);
+            }
+
+            return _buildAssetCard(asset, isInWatchlist, context);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAssetCard(
+    MarketAsset asset,
+    bool isInWatchlist,
+    BuildContext context,
+  ) {
     final isPositive = asset.changePercentage >= 0;
-    
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -488,37 +650,77 @@ class _MarketScreenState extends State<MarketScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xff1a1a1a),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withAlpha((0.1 * 255).round()),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            // Asset icon
+            // Stock Logo
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5BCE7).withAlpha((0.1 * 255).round()),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
-              child: Center(
-                child: Text(
-                  asset.symbol.substring(0, 1),
-                  style: const TextStyle(
-                    fontFamily: 'ClashDisplay',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFE5BCE7),
-                  ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  'https://logo.clearbit.com/${_getCompanyDomain(asset.symbol)}.com',
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback to first letter if logo fails to load
+                    return Center(
+                      child: Text(
+                        asset.symbol.substring(0, 1),
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // Asset details
             Expanded(
               child: Column(
@@ -526,11 +728,11 @@ class _MarketScreenState extends State<MarketScreen> {
                 children: [
                   Text(
                     asset.symbol,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -540,24 +742,28 @@ class _MarketScreenState extends State<MarketScreen> {
                       fontFamily: 'ClashDisplay',
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withAlpha((0.5 * 255).round()),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            
+
             // Price and change
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   CurrencyFormatter.formatINR(asset.currentPrice),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -570,7 +776,9 @@ class _MarketScreenState extends State<MarketScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      CurrencyFormatter.formatPercentage(asset.changePercentage),
+                      CurrencyFormatter.formatPercentage(
+                        asset.changePercentage,
+                      ),
                       style: TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 12,
@@ -582,9 +790,9 @@ class _MarketScreenState extends State<MarketScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(width: 8),
-            
+
             // Watchlist button
             BlocBuilder<WatchlistBloc, WatchlistState>(
               builder: (context, state) {
@@ -600,7 +808,11 @@ class _MarketScreenState extends State<MarketScreen> {
                   },
                   icon: Icon(
                     isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
-                    color: isInWatchlist ? const Color(0xFFE5BCE7) : Colors.white.withAlpha((0.5 * 255).round()),
+                    color: isInWatchlist
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.4),
                   ),
                 );
               },
@@ -611,14 +823,13 @@ class _MarketScreenState extends State<MarketScreen> {
     );
   }
 
-  
   Widget _buildLoadingState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            color: Color(0xFFE5BCE7),
+            color: Theme.of(context).colorScheme.primary,
           ),
           SizedBox(height: 16),
           Text(
@@ -650,11 +861,7 @@ class _MarketScreenState extends State<MarketScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 64,
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 64),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'Failed to load market data',
@@ -669,8 +876,11 @@ class _MarketScreenState extends State<MarketScreen> {
             ElevatedButton(
               onPressed: _refreshData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE5BCE7),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -690,21 +900,6 @@ class _MarketScreenState extends State<MarketScreen> {
       ),
     );
   }
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final difference = now.difference(time);
-
-    if (difference.inMinutes < 1) {
-      return 'just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${difference.inDays}d ago';
-    }
-  }
 }
 
 // Trade Dialog for buying/selling assets
@@ -720,7 +915,7 @@ class TradeDialog extends StatefulWidget {
 class _TradeDialogState extends State<TradeDialog> {
   bool _isBuying = true;
   final _quantityController = TextEditingController(text: '1');
-  
+
   double get _quantity => double.tryParse(_quantityController.text) ?? 0;
   double get _totalAmount => _quantity * widget.asset.currentPrice;
 
@@ -733,9 +928,9 @@ class _TradeDialogState extends State<TradeDialog> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xff0a0a0a),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -765,9 +960,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Buy/Sell Toggle
             Row(
               children: [
@@ -777,7 +972,9 @@ class _TradeDialogState extends State<TradeDialog> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: _isBuying ? Colors.green : const Color(0xff1a1a1a),
+                        color: _isBuying
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -787,7 +984,9 @@ class _TradeDialogState extends State<TradeDialog> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: _isBuying ? Colors.white : Colors.white.withAlpha((0.5 * 255).round()),
+                            color: _isBuying
+                                ? Colors.white
+                                : Colors.white.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ),
@@ -801,7 +1000,9 @@ class _TradeDialogState extends State<TradeDialog> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: !_isBuying ? Colors.red : const Color(0xff1a1a1a),
+                        color: !_isBuying
+                            ? Colors.red
+                            : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -811,7 +1012,9 @@ class _TradeDialogState extends State<TradeDialog> {
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: !_isBuying ? Colors.white : Colors.white.withAlpha((0.5 * 255).round()),
+                            color: !_isBuying
+                                ? Colors.white
+                                : Colors.white.withAlpha((0.5 * 255).round()),
                           ),
                         ),
                       ),
@@ -820,9 +1023,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Current Price
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -847,9 +1050,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Quantity Input
             Text(
               'Quantity',
@@ -873,7 +1076,7 @@ class _TradeDialogState extends State<TradeDialog> {
               ),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xff1a1a1a),
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -885,9 +1088,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Total Amount
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -912,9 +1115,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // User Balance
             BlocBuilder<UserBloc, UserState>(
               builder: (context, state) {
@@ -922,7 +1125,7 @@ class _TradeDialogState extends State<TradeDialog> {
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xff1a1a1a),
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -939,11 +1142,11 @@ class _TradeDialogState extends State<TradeDialog> {
                         ),
                         Text(
                           state.profile.formattedBalance,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'ClashDisplay',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFE5BCE7),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -953,9 +1156,9 @@ class _TradeDialogState extends State<TradeDialog> {
                 return const SizedBox.shrink();
               },
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Execute Button
             BlocConsumer<TransactionBloc, TransactionState>(
               listener: (context, state) {
@@ -981,33 +1184,35 @@ class _TradeDialogState extends State<TradeDialog> {
               },
               builder: (context, state) {
                 final isExecuting = state is TransactionExecuting;
-                
+
                 return SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isExecuting || _quantity <= 0 ? null : () {
-                      if (_isBuying) {
-                        context.read<TransactionBloc>().add(
-                          ExecuteBuyOrder(
-                            assetSymbol: widget.asset.symbol,
-                            assetName: widget.asset.name,
-                            assetType: widget.asset.type,
-                            quantity: _quantity,
-                            pricePerUnit: widget.asset.currentPrice,
-                          ),
-                        );
-                      } else {
-                        context.read<TransactionBloc>().add(
-                          ExecuteSellOrder(
-                            assetSymbol: widget.asset.symbol,
-                            assetName: widget.asset.name,
-                            assetType: widget.asset.type,
-                            quantity: _quantity,
-                            pricePerUnit: widget.asset.currentPrice,
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: isExecuting || _quantity <= 0
+                        ? null
+                        : () {
+                            if (_isBuying) {
+                              context.read<TransactionBloc>().add(
+                                ExecuteBuyOrder(
+                                  assetSymbol: widget.asset.symbol,
+                                  assetName: widget.asset.name,
+                                  assetType: widget.asset.type,
+                                  quantity: _quantity,
+                                  pricePerUnit: widget.asset.currentPrice,
+                                ),
+                              );
+                            } else {
+                              context.read<TransactionBloc>().add(
+                                ExecuteSellOrder(
+                                  assetSymbol: widget.asset.symbol,
+                                  assetName: widget.asset.name,
+                                  assetType: widget.asset.type,
+                                  quantity: _quantity,
+                                  pricePerUnit: widget.asset.currentPrice,
+                                ),
+                              );
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isBuying ? Colors.green : Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 16),

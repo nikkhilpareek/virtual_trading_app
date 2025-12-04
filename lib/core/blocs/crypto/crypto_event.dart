@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import '../../services/freecrypto_service.dart';
 
 /// Crypto Events
 abstract class CryptoEvent extends Equatable {

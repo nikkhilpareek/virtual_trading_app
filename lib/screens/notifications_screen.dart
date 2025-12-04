@@ -76,8 +76,10 @@ class NotificationsScreen extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: isRead
-                  ? Theme.of(context).colorScheme.surfaceVariant
-                  : Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(
+                      context,
+                    ).colorScheme.primary.withAlpha((0.12 * 255).round()),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

@@ -131,9 +131,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Member since ${_formatDate(profile.createdAt)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant
+                            .withAlpha((0.6 * 255).round()),
                       ),
                     ),
                   ],
@@ -230,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildDefaultAvatar(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Icon(
         Icons.person,
         size: 60,
@@ -429,7 +428,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          color: Theme.of(
+            context,
+          ).colorScheme.primary.withAlpha((0.1 * 255).round()),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(

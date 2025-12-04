@@ -42,7 +42,10 @@ class StockDetailBloc extends Bloc<StockDetailEvent, StockDetailState> {
         return;
       }
 
-      developer.log('Loading stock detail for $assetSymbol', name: 'StockDetailBloc');
+      developer.log(
+        'Loading stock detail for $assetSymbol',
+        name: 'StockDetailBloc',
+      );
 
       // Fetch holding for this stock
       final holdingResponse = await _supabase
@@ -55,9 +58,15 @@ class StockDetailBloc extends Bloc<StockDetailEvent, StockDetailState> {
       Holding? holding;
       if (holdingResponse != null) {
         holding = Holding.fromJson(holdingResponse);
-        developer.log('Found holding: ${holding.quantity} shares', name: 'StockDetailBloc');
+        developer.log(
+          'Found holding: ${holding.quantity} shares',
+          name: 'StockDetailBloc',
+        );
       } else {
-        developer.log('No holding found for $assetSymbol', name: 'StockDetailBloc');
+        developer.log(
+          'No holding found for $assetSymbol',
+          name: 'StockDetailBloc',
+        );
       }
 
       // Fetch all transactions for this stock
@@ -72,13 +81,30 @@ class StockDetailBloc extends Bloc<StockDetailEvent, StockDetailState> {
           .map((json) => Transaction.fromJson(json))
           .toList();
 
-      developer.log('Found ${transactions.length} transactions', name: 'StockDetailBloc');
+      developer.log(
+        'Found ${transactions.length} transactions',
+        name: 'StockDetailBloc',
+      );
 
-      emit(StockDetailLoaded(
-        holding: holding,
-        transactions: transactions,
-        assetSymbol: assetSymbol,
-      ));
+      // Debug: Log transaction details
+      final buyCount = transactions
+          .where((t) => t.transactionType == TransactionType.buy)
+          .length;
+      final sellCount = transactions
+          .where((t) => t.transactionType == TransactionType.sell)
+          .length;
+      developer.log(
+        'Buy transactions: $buyCount, Sell transactions: $sellCount',
+        name: 'StockDetailBloc',
+      );
+
+      emit(
+        StockDetailLoaded(
+          holding: holding,
+          transactions: transactions,
+          assetSymbol: assetSymbol,
+        ),
+      );
     } catch (e, st) {
       developer.log(
         'Error loading stock detail',

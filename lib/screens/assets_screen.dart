@@ -23,6 +23,16 @@ class _AssetsScreenState extends State<AssetsScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever screen comes into view
+    if (mounted) {
+      context.read<HoldingsBloc>().add(const RefreshHoldings());
+      context.read<WatchlistBloc>().add(const LoadWatchlist());
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
@@ -117,10 +127,10 @@ class _AssetsScreenState extends State<AssetsScreen>
                         colors: [
                           Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.1),
+                          ).colorScheme.primary.withAlpha((0.1 * 255).round()),
                           Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.05),
+                          ).colorScheme.primary.withAlpha((0.05 * 255).round()),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -216,7 +226,7 @@ class _AssetsScreenState extends State<AssetsScreen>
                   labelColor: Theme.of(context).colorScheme.onPrimary,
                   unselectedLabelColor: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withAlpha((0.6 * 255).round()),
                   labelStyle: const TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 14,
@@ -601,7 +611,9 @@ class _AssetsScreenState extends State<AssetsScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withAlpha((0.15 * 255).round()),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

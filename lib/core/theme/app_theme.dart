@@ -33,12 +33,9 @@ class AppTheme {
         errorContainer: Color(0xFFFFDAD6),
         onErrorContainer: Color(0xFF410002),
 
-        background: AppColors.lightBackground,
-        onBackground: AppColors.lightTextPrimary,
-
         surface: AppColors.lightCardBackground,
         onSurface: AppColors.lightTextPrimary,
-        surfaceVariant: Color(0xFFE1E2EC),
+        surfaceContainerHighest: Color(0xFFE1E2EC),
         onSurfaceVariant: AppColors.lightTextSecondary,
 
         outline: Color(0xFFCAC4D0),
@@ -92,7 +89,7 @@ class AppTheme {
           backgroundColor: AppColors.lightPrimary,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: AppColors.lightPrimary.withOpacity(0.3),
+          shadowColor: AppColors.lightPrimary.withAlpha((0.3 * 255).round()),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -166,7 +163,7 @@ class AppTheme {
           color: AppColors.lightTextSecondary,
         ),
         hintStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.lightTextSecondary.withOpacity(0.6),
+          color: AppColors.lightTextSecondary.withAlpha((0.6 * 255).round()),
         ),
         errorStyle: AppTextStyles.bodySmall.copyWith(
           color: AppColors.lightError,
@@ -215,15 +212,15 @@ class AppTheme {
 
       // Switch Theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.lightPrimary;
           }
           return const Color(0xFFE1E2EC);
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return AppColors.lightPrimary.withOpacity(0.5);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.lightPrimary.withAlpha((0.5 * 255).round());
           }
           return const Color(0xFFE1E2EC);
         }),
@@ -251,7 +248,7 @@ class AppTheme {
         activeTrackColor: AppColors.lightPrimary,
         inactiveTrackColor: const Color(0xFFE1E2EC),
         thumbColor: AppColors.lightPrimary,
-        overlayColor: AppColors.lightPrimary.withOpacity(0.12),
+        overlayColor: AppColors.lightPrimary.withAlpha((0.12 * 255).round()),
         valueIndicatorColor: AppColors.lightPrimary,
       ),
 
@@ -307,12 +304,9 @@ class AppTheme {
         errorContainer: Color(0xFF93000A),
         onErrorContainer: Color(0xFFFFDAD6),
 
-        background: AppColors.darkBackground,
-        onBackground: AppColors.darkTextPrimary,
-
         surface: AppColors.darkCardBackground,
         onSurface: AppColors.darkTextPrimary,
-        surfaceVariant: Color(0xFF44464F),
+        surfaceContainerHighest: Color(0xFF44464F),
         onSurfaceVariant: AppColors.darkTextSecondary,
 
         outline: Color(0xFF938F99),
@@ -363,7 +357,7 @@ class AppTheme {
           backgroundColor: AppColors.darkPrimary,
           foregroundColor: Color(0xFF001C3A),
           elevation: 4,
-          shadowColor: AppColors.darkPrimary.withOpacity(0.3),
+          shadowColor: AppColors.darkPrimary.withAlpha((0.3 * 255).round()),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -437,7 +431,7 @@ class AppTheme {
           color: AppColors.darkTextSecondary,
         ),
         hintStyle: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.darkTextSecondary.withOpacity(0.6),
+          color: AppColors.darkTextSecondary.withAlpha((0.6 * 255).round()),
         ),
         errorStyle: AppTextStyles.bodySmall.copyWith(
           color: AppColors.darkError,
@@ -486,15 +480,15 @@ class AppTheme {
 
       // Switch Theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.darkPrimary;
           }
           return const Color(0xFF44464F);
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return AppColors.darkPrimary.withOpacity(0.5);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.darkPrimary.withAlpha((0.5 * 255).round());
           }
           return const Color(0xFF44464F);
         }),
@@ -522,7 +516,7 @@ class AppTheme {
         activeTrackColor: AppColors.darkPrimary,
         inactiveTrackColor: const Color(0xFF44464F),
         thumbColor: AppColors.darkPrimary,
-        overlayColor: AppColors.darkPrimary.withOpacity(0.12),
+        overlayColor: AppColors.darkPrimary.withAlpha((0.12 * 255).round()),
         valueIndicatorColor: AppColors.darkPrimary,
       ),
 

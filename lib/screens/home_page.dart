@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'learn_screen.dart';
 import 'crypto_screen.dart';
+import 'orders_screen.dart';
 import 'dart:ui';
 
 class HomePage extends StatefulWidget {
@@ -68,7 +69,11 @@ class _HomePageState extends State<HomePage> {
         // This makes light swipes snap reliably to the next page without jitter.
         physics: const PageScrollPhysics(),
         pageSnapping: true,
-        onPageChanged: (index) => setState(() => _currentIndex = index),
+        onPageChanged: (index) {
+          setState(() => _currentIndex = index);
+          // Dismiss keyboard when swiping between pages
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
         children: _screens,
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -141,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.7);
+                        ).colorScheme.onSurface.withAlpha((0.7 * 255).round());
 
                   return Expanded(
                     child: GestureDetector(
@@ -406,11 +411,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Keep last total balance to animate from previous value instead of always
   // starting from zero which can cause visual glitches.
   double _lastTotalBalance = 0.0;
+
   @override
   void initState() {
     super.initState();
     // Load transactions when dashboard loads
     context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
+    // Load holdings to calculate correct portfolio value
+    context.read<HoldingsBloc>().add(const LoadHoldings());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever dashboard comes into view
+    if (mounted) {
+      context.read<HoldingsBloc>().add(const RefreshHoldings());
+      context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
+      context.read<UserBloc>().add(const LoadUserProfile());
+    }
   }
 
   @override
@@ -870,7 +889,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.2),
+                          ).colorScheme.primary.withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Icon(
@@ -1050,6 +1069,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        // Orders Button - Full width
+        _buildActionButton(
+          'View Orders',
+          Icons.pending_actions,
+          const Color(0xFFE5BCE7),
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OrdersScreen()),
+            );
+          },
         ),
         const SizedBox(height: 12),
       ],
