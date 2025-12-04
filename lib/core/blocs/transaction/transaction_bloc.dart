@@ -11,12 +11,12 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   TransactionType? _currentFilter;
 
   TransactionBloc({TransactionRepository? transactionRepository})
-      : _transactionRepository =
-            transactionRepository ?? TransactionRepository(),
-        super(const TransactionInitial()) {
+    : _transactionRepository = transactionRepository ?? TransactionRepository(),
+      super(const TransactionInitial()) {
     on<LoadTransactions>(_onLoadTransactions);
     on<ExecuteBuyOrder>(_onExecuteBuyOrder);
     on<ExecuteSellOrder>(_onExecuteSellOrder);
+    on<ExecuteSellOrderFromLot>(_onExecuteSellOrderFromLot);
     on<FilterTransactionsByType>(_onFilterTransactionsByType);
     on<LoadTransactionsByAsset>(_onLoadTransactionsByAsset);
   }
@@ -38,10 +38,12 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         return;
       }
 
-      emit(TransactionLoaded(
-        transactions: transactions,
-        filterType: _currentFilter,
-      ));
+      emit(
+        TransactionLoaded(
+          transactions: transactions,
+          filterType: _currentFilter,
+        ),
+      );
     } catch (e) {
       emit(TransactionError('Error loading transactions: ${e.toString()}'));
     }
@@ -63,12 +65,14 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       );
 
       if (transaction != null) {
-        emit(TransactionSuccess(
-          transaction: transaction,
-          message:
-              'Successfully bought ${event.quantity} ${event.assetSymbol}',
-        ));
-        
+        emit(
+          TransactionSuccess(
+            transaction: transaction,
+            message:
+                'Successfully bought ${event.quantity} ${event.assetSymbol}',
+          ),
+        );
+
         // Reload transactions after success
         add(const LoadTransactions());
       } else {
@@ -95,15 +99,50 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       );
 
       if (transaction != null) {
-        emit(TransactionSuccess(
-          transaction: transaction,
-          message: 'Successfully sold ${event.quantity} ${event.assetSymbol}',
-        ));
-        
+        emit(
+          TransactionSuccess(
+            transaction: transaction,
+            message: 'Successfully sold ${event.quantity} ${event.assetSymbol}',
+          ),
+        );
+
         // Reload transactions after success
         add(const LoadTransactions());
       } else {
         emit(const TransactionError('Failed to execute sell order'));
+      }
+    } catch (e) {
+      emit(TransactionError(e.toString()));
+    }
+  }
+
+  /// Execute sell order from a specific lot
+  Future<void> _onExecuteSellOrderFromLot(
+    ExecuteSellOrderFromLot event,
+    Emitter<TransactionState> emit,
+  ) async {
+    emit(const TransactionExecuting('Processing lot-specific sell order...'));
+    try {
+      final transaction = await _transactionRepository.executeSellOrderFromLot(
+        lotId: event.lotId,
+        assetSymbol: event.assetSymbol,
+        assetName: event.assetName,
+        assetType: event.assetType,
+        quantity: event.quantity,
+        pricePerUnit: event.pricePerUnit,
+      );
+
+      if (transaction != null) {
+        emit(
+          TransactionSuccess(
+            transaction: transaction,
+            message:
+                'Successfully sold ${event.quantity} ${event.assetSymbol} from lot',
+          ),
+        );
+        add(const LoadTransactions());
+      } else {
+        emit(const TransactionError('Failed to execute lot-specific sell'));
       }
     } catch (e) {
       emit(TransactionError(e.toString()));
@@ -119,10 +158,12 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
 
     if (state is TransactionLoaded) {
       final currentState = state as TransactionLoaded;
-      emit(TransactionLoaded(
-        transactions: currentState.transactions,
-        filterType: _currentFilter,
-      ));
+      emit(
+        TransactionLoaded(
+          transactions: currentState.transactions,
+          filterType: _currentFilter,
+        ),
+      );
     } else {
       add(const LoadTransactions());
     }
@@ -135,18 +176,21 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   ) async {
     emit(const TransactionLoading());
     try {
-      final transactions =
-          await _transactionRepository.getTransactionsByAsset(event.assetSymbol);
+      final transactions = await _transactionRepository.getTransactionsByAsset(
+        event.assetSymbol,
+      );
 
       if (transactions.isEmpty) {
         emit(const TransactionEmpty());
         return;
       }
 
-      emit(TransactionLoaded(
-        transactions: transactions,
-        filterType: _currentFilter,
-      ));
+      emit(
+        TransactionLoaded(
+          transactions: transactions,
+          filterType: _currentFilter,
+        ),
+      );
     } catch (e) {
       emit(TransactionError('Error loading transactions: ${e.toString()}'));
     }

@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
+import '../core/repositories/holding_lot_repository.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StockDetailScreen extends StatelessWidget {
   final Holding holding;
@@ -12,18 +14,41 @@ class StockDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          StockDetailBloc()..add(LoadStockDetail(holding.assetSymbol)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              StockDetailBloc()..add(LoadStockDetail(holding.assetSymbol)),
+        ),
+        BlocProvider(
+          create: (context) =>
+              HoldingLotBloc(HoldingLotRepository(Supabase.instance.client))
+                ..add(LoadLotsBySymbol(holding.assetSymbol)),
+        ),
+      ],
       child: _StockDetailView(holding: holding),
     );
   }
 }
 
-class _StockDetailView extends StatelessWidget {
+class _StockDetailView extends StatefulWidget {
   final Holding holding;
 
   const _StockDetailView({required this.holding});
+
+  @override
+  State<_StockDetailView> createState() => _StockDetailViewState();
+}
+
+class _StockDetailViewState extends State<_StockDetailView> {
+  @override
+  void initState() {
+    super.initState();
+    // Load pending orders for this holding
+    context.read<OrderBloc>().add(const LoadPendingOrders());
+  }
+
+  Holding get holding => widget.holding;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +90,9 @@ class _StockDetailView extends StatelessWidget {
               context.read<StockDetailBloc>().add(
                 RefreshStockDetail(holding.assetSymbol),
               );
+              context.read<HoldingLotBloc>().add(
+                LoadLotsBySymbol(holding.assetSymbol),
+              );
             },
             icon: Icon(
               Icons.refresh,
@@ -73,8 +101,6 @@ class _StockDetailView extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: _buildActionButton(context, holding),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: BlocBuilder<StockDetailBloc, StockDetailState>(
         builder: (context, state) {
           if (state is StockDetailLoading) {
@@ -145,7 +171,13 @@ class _StockDetailView extends StatelessWidget {
                     children: [
                       _buildCurrentHoldingCard(context, state.holding),
                       const SizedBox(height: 24),
+                      _buildPurchaseLotsSection(context),
+                      const SizedBox(height: 24),
+                      _buildActiveOrdersSection(context),
+                      const SizedBox(height: 24),
                       _buildStatisticsSection(context, state),
+                      const SizedBox(height: 24),
+                      _buildOrderTypeSection(context),
                       const SizedBox(height: 24),
                       _buildTransactionHistory(context, state.transactions),
                       const SizedBox(height: 100),
@@ -743,62 +775,1044 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  /// Build Action Button with multiple options
-  Widget _buildActionButton(BuildContext context, Holding holding) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+  /// Build Purchase Lots Section
+  Widget _buildPurchaseLotsSection(BuildContext context) {
+    return BlocBuilder<HoldingLotBloc, HoldingLotState>(
+      builder: (context, state) {
+        if (state is HoldingLotLoading) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          );
+        }
+
+        if (state is HoldingLotsEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        if (state is HoldingLotsLoaded && state.lots.isNotEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Purchase Lots',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withAlpha((0.2 * 255).round()),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${state.lots.length} ${state.lots.length == 1 ? 'Lot' : 'Lots'}',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...state.lots.map((lot) => _buildLotCard(context, lot)),
+            ],
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  /// Build individual lot card
+  Widget _buildLotCard(BuildContext context, HoldingLot lot) {
+    final isPositive = lot.profitLoss >= 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xff121212),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isPositive
+              ? Colors.green.withAlpha((0.3 * 255).round())
+              : Colors.red.withAlpha((0.3 * 255).round()),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Purchased: ${DateFormat('MMM dd, yyyy').format(lot.purchaseDate)}',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 12,
+                      color: Colors.white.withAlpha((0.6 * 255).round()),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${lot.quantity.toStringAsFixed(2)} units',
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    lot.formattedPurchasePrice,
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    lot.formattedProfitLoss,
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isPositive ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _createStopLossForLot(context, lot),
+                  icon: const Icon(Icons.shield, size: 16),
+                  label: const Text('Stop-Loss'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _sellLot(context, lot),
+                  icon: const Icon(Icons.sell, size: 16),
+                  label: const Text('Sell'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Create stop-loss for a specific lot
+  void _createStopLossForLot(BuildContext context, HoldingLot lot) {
+    _showTradeDialog(
+      context,
+      holding,
+      'stoploss',
+      lotId: lot.id,
+      lotQuantity: lot.quantity,
+    );
+  }
+
+  /// Sell a specific lot
+  void _sellLot(BuildContext context, HoldingLot lot) {
+    _showTradeDialog(
+      context,
+      holding,
+      'sell',
+      lotId: lot.id,
+      lotQuantity: lot.quantity,
+    );
+  }
+
+  /// Build Order Type Section (Sell, Stop-Loss, Bracket)
+  Widget _buildOrderTypeSection(BuildContext context) {
+    return _OrderTypeSection(holding: holding);
+  }
+
+  /// Build Active Orders Section
+  Widget _buildActiveOrdersSection(BuildContext context) {
+    return BlocBuilder<OrderBloc, OrderState>(
+      builder: (context, state) {
+        // Filter orders for this specific holding
+        List<Order> holdingOrders = [];
+
+        if (state is PendingOrdersLoaded) {
+          holdingOrders = state.orders
+              .where((order) => order.assetSymbol == holding.assetSymbol)
+              .toList();
+        } else if (state is AllOrdersLoaded) {
+          holdingOrders = state.pendingOrders
+              .where((order) => order.assetSymbol == holding.assetSymbol)
+              .toList();
+        }
+
+        if (holdingOrders.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Active Orders',
+                  style: TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${holdingOrders.length}',
+                    style: const TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...holdingOrders.map((order) => _buildOrderCard(context, order)),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Build individual order card
+  Widget _buildOrderCard(BuildContext context, Order order) {
+    Color orderColor;
+    IconData orderIcon;
+    String orderTypeText;
+
+    switch (order.orderType) {
+      case OrderType.stopLoss:
+        orderColor = Colors.orange;
+        orderIcon = Icons.shield;
+        orderTypeText = 'Stop-Loss';
+        break;
+      case OrderType.bracket:
+        orderColor = Colors.blue;
+        orderIcon = Icons.account_tree;
+        orderTypeText = 'Bracket';
+        break;
+      default:
+        orderColor = Colors.grey;
+        orderIcon = Icons.sell;
+        orderTypeText = 'Market';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: orderColor.withAlpha((0.1 * 255).round()),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: orderColor.withAlpha((0.3 * 255).round())),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: orderColor.withAlpha((0.2 * 255).round()),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(orderIcon, color: orderColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      orderTypeText,
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: orderColor,
+                      ),
+                    ),
+                    Text(
+                      '${order.quantity.toStringAsFixed(2)} units',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 13,
+                        color: Colors.white.withAlpha((0.7 * 255).round()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () => _editOrder(context, order),
+                    icon: const Icon(Icons.edit, size: 20),
+                    color: orderColor,
+                    style: IconButton.styleFrom(
+                      backgroundColor: orderColor.withAlpha(
+                        (0.2 * 255).round(),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _cancelOrder(context, order),
+                    icon: const Icon(Icons.close, size: 20),
+                    color: Colors.red,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.red.withAlpha(
+                        (0.2 * 255).round(),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (order.orderType == OrderType.stopLoss)
+            _buildOrderDetail('Trigger Price', order.triggerPrice!),
+          if (order.orderType == OrderType.bracket) ...[
+            _buildOrderDetail('Stop-Loss', order.stopLossPrice!),
+            const SizedBox(height: 8),
+            _buildOrderDetail('Target', order.targetPrice!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderDetail(String label, double price) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Sell Button
-        FloatingActionButton.extended(
-          heroTag: 'sell',
-          onPressed: () => _showTradeDialog(context, holding, 'sell'),
-          backgroundColor: Colors.red,
-          icon: const Icon(Icons.sell, color: Colors.white),
-          label: const Text(
-            'Sell',
-            style: TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 13,
+            color: Colors.white.withAlpha((0.6 * 255).round()),
           ),
         ),
-        const SizedBox(height: 12),
-        // Stop-Loss Button
-        FloatingActionButton.extended(
-          heroTag: 'stoploss',
-          onPressed: () => _showTradeDialog(context, holding, 'stoploss'),
-          backgroundColor: Colors.orange,
-          icon: const Icon(Icons.shield, color: Colors.white, size: 20),
-          label: const Text(
-            'Stop-Loss',
-            style: TextStyle(
-              fontFamily: 'ClashDisplay',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Bracket Order Button
-        FloatingActionButton.extended(
-          heroTag: 'bracket',
-          onPressed: () => _showTradeDialog(context, holding, 'bracket'),
-          backgroundColor: Colors.blue,
-          icon: const Icon(
-            Icons.account_balance,
+        Text(
+          CurrencyFormatter.formatINR(price),
+          style: const TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
-            size: 20,
           ),
-          label: const Text(
-            'Bracket',
-            style: TextStyle(
+        ),
+      ],
+    );
+  }
+
+  /// Edit order
+  void _editOrder(BuildContext context, Order order) {
+    final holding = this.holding;
+    if (order.orderType == OrderType.stopLoss) {
+      _showTradeDialog(context, holding, 'stoploss', existingOrder: order);
+    } else if (order.orderType == OrderType.bracket) {
+      _showTradeDialog(context, holding, 'bracket', existingOrder: order);
+    }
+  }
+
+  /// Cancel order
+  void _cancelOrder(BuildContext context, Order order) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Cancel Order?',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to cancel this ${order.orderType.displayName} order?',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            color: Colors.white.withAlpha((0.8 * 255).round()),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'No',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white.withAlpha((0.6 * 255).round()),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<OrderBloc>().add(CancelOrder(orderId: order.id));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Order cancelled successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text(
+              'Yes, Cancel',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show Sell Dialog
+  /// Show Trade Dialog with UPI-style confirmation
+  void _showTradeDialog(
+    BuildContext context,
+    Holding holding,
+    String type, {
+    Order? existingOrder,
+    String? lotId,
+    double? lotQuantity,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _TradeBottomSheet(
+        holding: holding,
+        tradeType: type,
+        existingOrder: existingOrder,
+        lotId: lotId,
+        lotQuantity: lotQuantity,
+      ),
+    );
+  }
+}
+
+/// Order Type Section Widget (Sell, Stop-Loss, Bracket)
+class _OrderTypeSection extends StatefulWidget {
+  final Holding holding;
+
+  const _OrderTypeSection({required this.holding});
+
+  @override
+  State<_OrderTypeSection> createState() => _OrderTypeSectionState();
+}
+
+class _OrderTypeSectionState extends State<_OrderTypeSection> {
+  bool _stopLossEnabled = false;
+  bool _bracketEnabled = false;
+
+  final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _triggerPriceController = TextEditingController();
+  final TextEditingController _stopLossPriceController =
+      TextEditingController();
+  final TextEditingController _targetPriceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final currentPrice =
+        widget.holding.currentPrice ?? widget.holding.averagePrice;
+    _triggerPriceController.text = (currentPrice * 0.95).toStringAsFixed(2);
+    _stopLossPriceController.text = (currentPrice * 0.97).toStringAsFixed(2);
+    _targetPriceController.text = (currentPrice * 1.05).toStringAsFixed(2);
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _triggerPriceController.dispose();
+    _stopLossPriceController.dispose();
+    _targetPriceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentPrice =
+        widget.holding.currentPrice ?? widget.holding.averagePrice;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Stop-Loss Order Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xff121212),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _stopLossEnabled
+                  ? Colors.orange.withAlpha((0.5 * 255).round())
+                  : Colors.white.withAlpha((0.1 * 255).round()),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header with toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withAlpha((0.1 * 255).round()),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    topRight: Radius.circular(14),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withAlpha((0.2 * 255).round()),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.shield,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Stop Loss Order',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Sell when price drops below',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Transform.scale(
+                      scale: 1.2,
+                      child: Switch(
+                        value: _stopLossEnabled,
+                        onChanged: (value) {
+                          setState(() {
+                            _stopLossEnabled = value;
+                            if (value) _bracketEnabled = false;
+                          });
+                        },
+                        activeColor: Colors.orange,
+                        activeTrackColor: Colors.orange.withAlpha(
+                          (0.5 * 255).round(),
+                        ),
+                        inactiveThumbColor: Colors.grey,
+                        inactiveTrackColor: Colors.grey.withAlpha(
+                          (0.3 * 255).round(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Stop-Loss inputs
+              if (_stopLossEnabled)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildPriceInput(
+                        'Trigger Price',
+                        _triggerPriceController,
+                        currentPrice,
+                        Colors.orange,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildQuantityInput()),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () => _createStopLossOrder(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Create',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Bracket Order Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xff121212),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _bracketEnabled
+                  ? Colors.blue.withAlpha((0.5 * 255).round())
+                  : Colors.white.withAlpha((0.1 * 255).round()),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header with toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withAlpha((0.1 * 255).round()),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    topRight: Radius.circular(14),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withAlpha((0.2 * 255).round()),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.account_tree,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bracket Order',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Set stop-loss & target together',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Transform.scale(
+                      scale: 1.2,
+                      child: Switch(
+                        value: _bracketEnabled,
+                        onChanged: (value) {
+                          setState(() {
+                            _bracketEnabled = value;
+                            if (value) _stopLossEnabled = false;
+                          });
+                        },
+                        activeColor: Colors.blue,
+                        activeTrackColor: Colors.blue.withAlpha(
+                          (0.5 * 255).round(),
+                        ),
+                        inactiveThumbColor: Colors.grey,
+                        inactiveTrackColor: Colors.grey.withAlpha(
+                          (0.3 * 255).round(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Bracket inputs
+              if (_bracketEnabled)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildPriceInput(
+                        'Stop-Loss Price',
+                        _stopLossPriceController,
+                        currentPrice,
+                        Colors.red,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPriceInput(
+                        'Target Price',
+                        _targetPriceController,
+                        currentPrice,
+                        Colors.green,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildQuantityInput()),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () => _createBracketOrder(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Create',
+                              style: TextStyle(
+                                fontFamily: 'ClashDisplay',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceInput(
+    String label,
+    TextEditingController controller,
+    double currentPrice,
+    Color accentColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha((0.1 * 255).round()),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 12,
+                    color: Colors.white.withAlpha((0.6 * 255).round()),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Help',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 11,
+                      color: Colors.white.withAlpha((0.6 * 255).round()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            // Decrease button
+            Container(
+              decoration: BoxDecoration(
+                color: accentColor.withAlpha((0.1 * 255).round()),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  bottomLeft: Radius.circular(8),
+                ),
+                border: Border.all(
+                  color: accentColor.withAlpha((0.3 * 255).round()),
+                ),
+              ),
+              child: IconButton(
+                onPressed: () {
+                  double current =
+                      double.tryParse(controller.text) ?? currentPrice;
+                  controller.text = (current * 0.99).toStringAsFixed(2);
+                },
+                icon: Icon(Icons.remove, color: accentColor, size: 20),
+                padding: const EdgeInsets.all(12),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+
+            // Price input
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.05 * 255).round()),
+                  border: Border.symmetric(
+                    horizontal: BorderSide(
+                      color: accentColor.withAlpha((0.3 * 255).round()),
+                    ),
+                  ),
+                ),
+                child: TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'ClashDisplay',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+            ),
+
+            // Increase button
+            Container(
+              decoration: BoxDecoration(
+                color: accentColor.withAlpha((0.1 * 255).round()),
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
+                border: Border.all(
+                  color: accentColor.withAlpha((0.3 * 255).round()),
+                ),
+              ),
+              child: IconButton(
+                onPressed: () {
+                  double current =
+                      double.tryParse(controller.text) ?? currentPrice;
+                  controller.text = (current * 1.01).toStringAsFixed(2);
+                },
+                icon: Icon(Icons.add, color: accentColor, size: 20),
+                padding: const EdgeInsets.all(12),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildQuickButton('+2.5%', () {
+              controller.text = (currentPrice * 1.025).toStringAsFixed(2);
+            }),
+            _buildQuickButton('+5%', () {
+              controller.text = (currentPrice * 1.05).toStringAsFixed(2);
+            }),
+            _buildQuickButton('+10%', () {
+              controller.text = (currentPrice * 1.10).toStringAsFixed(2);
+            }),
+            _buildQuickButton('+15%', () {
+              controller.text = (currentPrice * 1.15).toStringAsFixed(2);
+            }),
+            _buildQuickButton('Custom', () {
+              // Already custom
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantityInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quantity',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _quantityController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Enter quantity',
+            hintStyle: TextStyle(
               fontFamily: 'ClashDisplay',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              fontSize: 13,
+              color: Colors.white.withAlpha((0.3 * 255).round()),
+            ),
+            filled: true,
+            fillColor: Colors.white.withAlpha((0.05 * 255).round()),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: Colors.white.withAlpha((0.2 * 255).round()),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: Colors.white.withAlpha((0.2 * 255).round()),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
             ),
           ),
         ),
@@ -806,14 +1820,198 @@ class _StockDetailView extends StatelessWidget {
     );
   }
 
-  /// Show Trade Dialog with UPI-style confirmation
-  void _showTradeDialog(BuildContext context, Holding holding, String type) {
-    showModalBottomSheet(
+  Widget _buildQuickButton(String label, VoidCallback onPressed) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha((0.05 * 255).round()),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: Colors.white.withAlpha((0.1 * 255).round()),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: 12,
+            color: Colors.white.withAlpha((0.8 * 255).round()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _createStopLossOrder(BuildContext context) {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    final triggerPrice = double.tryParse(_triggerPriceController.text) ?? 0;
+
+    if (quantity <= 0) {
+      _showError(
+        context,
+        'Invalid Quantity',
+        'Please enter a valid quantity greater than 0.',
+      );
+      return;
+    }
+
+    if (quantity > widget.holding.quantity) {
+      _showError(
+        context,
+        'Insufficient Quantity',
+        'You only have ${widget.holding.quantity.toStringAsFixed(2)} units available.',
+      );
+      return;
+    }
+
+    if (triggerPrice <= 0) {
+      _showError(
+        context,
+        'Invalid Price',
+        'Please enter a valid trigger price.',
+      );
+      return;
+    }
+
+    context.read<OrderBloc>().add(
+      CreateStopLossOrder(
+        assetSymbol: widget.holding.assetSymbol,
+        assetName: widget.holding.assetName,
+        assetType: widget.holding.assetType,
+        orderSide: OrderSide.sell,
+        quantity: quantity,
+        triggerPrice: triggerPrice,
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Stop-Loss order created successfully!',
+          style: TextStyle(fontFamily: 'ClashDisplay'),
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+
+    // Reset inputs
+    _quantityController.clear();
+    setState(() => _stopLossEnabled = false);
+  }
+
+  void _createBracketOrder(BuildContext context) {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    final stopLossPrice = double.tryParse(_stopLossPriceController.text) ?? 0;
+    final targetPrice = double.tryParse(_targetPriceController.text) ?? 0;
+    final currentPrice =
+        widget.holding.currentPrice ?? widget.holding.averagePrice;
+
+    if (quantity <= 0) {
+      _showError(
+        context,
+        'Invalid Quantity',
+        'Please enter a valid quantity greater than 0.',
+      );
+      return;
+    }
+
+    if (quantity > widget.holding.quantity) {
+      _showError(
+        context,
+        'Insufficient Quantity',
+        'You only have ${widget.holding.quantity.toStringAsFixed(2)} units available.',
+      );
+      return;
+    }
+
+    if (stopLossPrice <= 0 || targetPrice <= 0) {
+      _showError(
+        context,
+        'Invalid Prices',
+        'Please enter valid stop-loss and target prices.',
+      );
+      return;
+    }
+
+    if (stopLossPrice >= currentPrice || targetPrice <= currentPrice) {
+      _showError(
+        context,
+        'Invalid Price Levels',
+        'Stop-loss must be below current price and target must be above current price.',
+      );
+      return;
+    }
+
+    context.read<OrderBloc>().add(
+      CreateBracketOrder(
+        assetSymbol: widget.holding.assetSymbol,
+        assetName: widget.holding.assetName,
+        assetType: widget.holding.assetType,
+        orderSide: OrderSide.sell,
+        quantity: quantity,
+        entryPrice: currentPrice,
+        stopLossPrice: stopLossPrice,
+        targetPrice: targetPrice,
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Bracket order created successfully!',
+          style: TextStyle(fontFamily: 'ClashDisplay'),
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+
+    // Reset inputs
+    _quantityController.clear();
+    setState(() => _bracketEnabled = false);
+  }
+
+  void _showError(BuildContext context, String title, String message) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) =>
-          _TradeBottomSheet(holding: holding, tradeType: type),
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            color: Colors.white.withAlpha((0.8 * 255).round()),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -822,8 +2020,17 @@ class _StockDetailView extends StatelessWidget {
 class _TradeBottomSheet extends StatefulWidget {
   final Holding holding;
   final String tradeType; // 'sell', 'stoploss', 'bracket'
+  final Order? existingOrder; // For editing existing orders
+  final String? lotId; // For lot-specific operations
+  final double? lotQuantity; // Pre-fill quantity for specific lot
 
-  const _TradeBottomSheet({required this.holding, required this.tradeType});
+  const _TradeBottomSheet({
+    required this.holding,
+    required this.tradeType,
+    this.existingOrder,
+    this.lotId,
+    this.lotQuantity,
+  });
 
   @override
   State<_TradeBottomSheet> createState() => _TradeBottomSheetState();
@@ -843,12 +2050,38 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
     final currentPrice =
         widget.holding.currentPrice ?? widget.holding.averagePrice;
 
-    // Set default values
-    if (widget.tradeType == 'stoploss') {
-      _triggerPriceController.text = (currentPrice * 0.95).toStringAsFixed(2);
-    } else if (widget.tradeType == 'bracket') {
-      _stopLossPriceController.text = (currentPrice * 0.97).toStringAsFixed(2);
-      _targetPriceController.text = (currentPrice * 1.05).toStringAsFixed(2);
+    // If lot-specific, pre-fill the quantity
+    if (widget.lotQuantity != null) {
+      _quantityController.text = widget.lotQuantity!.toStringAsFixed(2);
+    }
+
+    // If editing existing order, load its values
+    if (widget.existingOrder != null) {
+      final order = widget.existingOrder!;
+      _quantityController.text = order.quantity.toStringAsFixed(2);
+
+      if (order.orderType == OrderType.stopLoss && order.triggerPrice != null) {
+        _triggerPriceController.text = order.triggerPrice!.toStringAsFixed(2);
+      } else if (order.orderType == OrderType.bracket) {
+        if (order.stopLossPrice != null) {
+          _stopLossPriceController.text = order.stopLossPrice!.toStringAsFixed(
+            2,
+          );
+        }
+        if (order.targetPrice != null) {
+          _targetPriceController.text = order.targetPrice!.toStringAsFixed(2);
+        }
+      }
+    } else {
+      // Set default values for new orders
+      if (widget.tradeType == 'stoploss') {
+        _triggerPriceController.text = (currentPrice * 0.95).toStringAsFixed(2);
+      } else if (widget.tradeType == 'bracket') {
+        _stopLossPriceController.text = (currentPrice * 0.97).toStringAsFixed(
+          2,
+        );
+        _targetPriceController.text = (currentPrice * 1.05).toStringAsFixed(2);
+      }
     }
   }
 
@@ -935,6 +2168,10 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
                     Navigator.of(context).pop(); // Close bottom sheet
                     // Refresh data - Force reload from database
                     context.read<HoldingsBloc>().add(const RefreshHoldings());
+                    // Refresh lots
+                    context.read<HoldingLotBloc>().add(
+                      LoadLotsBySymbol(widget.holding.assetSymbol),
+                    );
                     // Use a longer delay to ensure database transaction commits
                     await Future.delayed(const Duration(milliseconds: 800));
                     if (context.mounted) {
@@ -1106,15 +2343,30 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
               ),
             );
           } else {
-            context.read<TransactionBloc>().add(
-              ExecuteSellOrder(
-                assetSymbol: widget.holding.assetSymbol,
-                assetName: widget.holding.assetName,
-                assetType: widget.holding.assetType,
-                quantity: quantity,
-                pricePerUnit: currentPrice,
-              ),
-            );
+            // If a specific lot was provided, sell from that lot
+            if (widget.lotId != null) {
+              context.read<TransactionBloc>().add(
+                ExecuteSellOrderFromLot(
+                  lotId: widget.lotId!,
+                  assetSymbol: widget.holding.assetSymbol,
+                  assetName: widget.holding.assetName,
+                  assetType: widget.holding.assetType,
+                  quantity: quantity,
+                  pricePerUnit: currentPrice,
+                ),
+              );
+            } else {
+              // Fallback to FIFO sell across lots
+              context.read<TransactionBloc>().add(
+                ExecuteSellOrder(
+                  assetSymbol: widget.holding.assetSymbol,
+                  assetName: widget.holding.assetName,
+                  assetType: widget.holding.assetType,
+                  quantity: quantity,
+                  pricePerUnit: currentPrice,
+                ),
+              );
+            }
           }
           // Wait for transaction to complete
           await Future.delayed(const Duration(milliseconds: 1500));
@@ -1137,6 +2389,15 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
             setState(() => _isLoading = false);
             return;
           }
+
+          // If editing, cancel the old order first
+          if (widget.existingOrder != null) {
+            context.read<OrderBloc>().add(
+              CancelOrder(orderId: widget.existingOrder!.id),
+            );
+            await Future.delayed(const Duration(milliseconds: 300));
+          }
+
           context.read<OrderBloc>().add(
             CreateStopLossOrder(
               assetSymbol: widget.holding.assetSymbol,
@@ -1145,13 +2406,17 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
               orderSide: OrderSide.sell,
               quantity: quantity,
               triggerPrice: triggerPrice,
-              notes: 'Stop-loss order from holdings',
+              notes: widget.existingOrder != null
+                  ? 'Updated stop-loss order from holdings'
+                  : 'Stop-loss order from holdings',
             ),
           );
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
             _showConfirmationDialog(
-              'Stop-Loss order created for ${widget.holding.assetSymbol}',
+              widget.existingOrder != null
+                  ? 'Stop-Loss order updated for ${widget.holding.assetSymbol}'
+                  : 'Stop-Loss order created for ${widget.holding.assetSymbol}',
               quantity * triggerPrice,
             );
           }
@@ -1177,6 +2442,15 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
             setState(() => _isLoading = false);
             return;
           }
+
+          // If editing, cancel the old order first
+          if (widget.existingOrder != null) {
+            context.read<OrderBloc>().add(
+              CancelOrder(orderId: widget.existingOrder!.id),
+            );
+            await Future.delayed(const Duration(milliseconds: 300));
+          }
+
           context.read<OrderBloc>().add(
             CreateBracketOrder(
               assetSymbol: widget.holding.assetSymbol,
@@ -1187,13 +2461,17 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
               entryPrice: currentPrice,
               stopLossPrice: stopLossPrice,
               targetPrice: targetPrice,
-              notes: 'Bracket order from holdings',
+              notes: widget.existingOrder != null
+                  ? 'Updated bracket order from holdings'
+                  : 'Bracket order from holdings',
             ),
           );
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
             _showConfirmationDialog(
-              'Bracket order created for ${widget.holding.assetSymbol}',
+              widget.existingOrder != null
+                  ? 'Bracket order updated for ${widget.holding.assetSymbol}'
+                  : 'Bracket order created for ${widget.holding.assetSymbol}',
               quantity * currentPrice,
             );
           }
@@ -1215,16 +2493,17 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
     final currentPrice =
         widget.holding.currentPrice ?? widget.holding.averagePrice;
 
+    final bool isEditing = widget.existingOrder != null;
     String title = '';
     switch (widget.tradeType) {
       case 'sell':
         title = 'Sell ${widget.holding.assetSymbol}';
         break;
       case 'stoploss':
-        title = 'Stop-Loss Order';
+        title = isEditing ? 'Edit Stop-Loss Order' : 'Stop-Loss Order';
         break;
       case 'bracket':
-        title = 'Bracket Order';
+        title = isEditing ? 'Edit Bracket Order' : 'Bracket Order';
         break;
     }
 
@@ -1339,6 +2618,7 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
                   ),
                 ),
                 style: const TextStyle(color: Colors.white),
+                readOnly: widget.tradeType == 'sell' && widget.lotId != null,
                 onChanged: (value) {
                   setState(() {}); // Trigger rebuild to update total
                 },
