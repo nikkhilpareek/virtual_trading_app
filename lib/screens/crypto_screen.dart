@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
@@ -19,24 +20,50 @@ class CryptoScreen extends StatefulWidget {
 }
 
 class _CryptoScreenState extends State<CryptoScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   Timer? _refreshTimer;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   List<CryptoQuote> _filteredCryptos = [];
   bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // Load initial data with limit of 5
     context.read<CryptoBloc>().add(const LoadCryptoMarket(limit: 5));
+    // Refresh holdings to show correct data
+    context.read<HoldingsBloc>().add(const LoadHoldings());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever screen comes into view
+    if (mounted) {
+      context.read<CryptoBloc>().add(const RefreshCryptoMarket(limit: 5));
+      context.read<HoldingsBloc>().add(const RefreshHoldings());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Dismiss keyboard when app goes to background
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _searchFocusNode.unfocus();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -98,6 +125,9 @@ class _CryptoScreenState extends State<CryptoScreen>
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: TextField(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
+                showCursor: true,
+                enableInteractiveSelection: true,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search cryptocurrency...',
@@ -105,15 +135,30 @@ class _CryptoScreenState extends State<CryptoScreen>
                     color: Colors.white.withAlpha((0.5 * 255).round()),
                     fontFamily: 'ClashDisplay',
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  prefixIcon: _isSearching
+                      ? Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          Icons.search,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, color: Colors.white54),
                           onPressed: () {
                             _searchController.clear();
+                            _searchFocusNode.unfocus();
                             setState(() {
                               _isSearching = false;
                               _filteredCryptos = [];
@@ -127,12 +172,32 @@ class _CryptoScreenState extends State<CryptoScreen>
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                 ),
-                onChanged: _performSearch,
+                onChanged: (value) {
+                  // Debounce search with production-level delay
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (_searchController.text == value) {
+                      _performSearch(value);
+                    }
+                  });
+                },
+                onTap: () {
+                  // Ensure cursor is visible only when tapped
+                  if (!_searchFocusNode.hasFocus) {
+                    _searchFocusNode.requestFocus();
+                  }
+                },
               ),
             ),
 
@@ -146,7 +211,7 @@ class _CryptoScreenState extends State<CryptoScreen>
     );
   }
 
-  /// Perform search with multithreading
+  /// Perform search with isolate-based multithreading for production
   void _performSearch(String query) async {
     if (query.isEmpty) {
       setState(() {
@@ -158,34 +223,66 @@ class _CryptoScreenState extends State<CryptoScreen>
 
     setState(() => _isSearching = true);
 
-    // Use Future.microtask for multithreading
-    final service = FreeCryptoService();
-    final searchResults = await Future.microtask(
-      () => service.searchCrypto(query),
-    );
+    try {
+      // Use isolate for multithreaded search
+      final service = FreeCryptoService();
+      final searchResults = await compute(_searchCryptoInIsolate, {
+        'query': query,
+        'service': service,
+      });
 
-    if (searchResults.isNotEmpty) {
-      // Fetch prices for search results
-      final symbols = searchResults.map((r) => r.symbol).toList();
-      final cryptos = await Future.microtask(() async {
-        final List<CryptoQuote?> results = [];
-        for (final symbol in symbols) {
-          final quote = await service.getCryptoPrice(symbol);
-          if (quote != null) results.add(quote);
+      if (searchResults.isNotEmpty && mounted) {
+        // Fetch prices for search results in isolate
+        final symbols = searchResults.map((r) => r.symbol).toList();
+        final cryptos = await compute(_fetchPricesInIsolate, {
+          'symbols': symbols,
+          'service': service,
+        });
+
+        if (mounted) {
+          setState(() {
+            _filteredCryptos = cryptos;
+            _isSearching = false;
+          });
         }
-        return results.whereType<CryptoQuote>().toList();
-      });
-
-      setState(() {
-        _filteredCryptos = cryptos;
-        _isSearching = true;
-      });
-    } else {
-      setState(() {
-        _filteredCryptos = [];
-        _isSearching = true;
-      });
+      } else if (mounted) {
+        setState(() {
+          _filteredCryptos = [];
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _filteredCryptos = [];
+          _isSearching = false;
+        });
+      }
     }
+  }
+
+  // Static isolate function for search
+  static Future<List<dynamic>> _searchCryptoInIsolate(
+    Map<String, dynamic> params,
+  ) async {
+    final String query = params['query'] as String;
+    final FreeCryptoService service = params['service'] as FreeCryptoService;
+    return await service.searchCrypto(query);
+  }
+
+  // Static isolate function for price fetching
+  static Future<List<CryptoQuote>> _fetchPricesInIsolate(
+    Map<String, dynamic> params,
+  ) async {
+    final List<String> symbols = params['symbols'] as List<String>;
+    final FreeCryptoService service = params['service'] as FreeCryptoService;
+
+    final List<CryptoQuote> results = [];
+    for (final symbol in symbols) {
+      final quote = await service.getCryptoPrice(symbol);
+      if (quote != null) results.add(quote);
+    }
+    return results;
   }
 
   /// Market Tab - Shows all available cryptocurrencies
@@ -326,10 +423,23 @@ class _CryptoScreenState extends State<CryptoScreen>
           );
         }
 
-        return const Center(
-          child: Text(
-            'No cryptocurrency data available',
-            style: TextStyle(fontFamily: 'ClashDisplay', color: Colors.white54),
+        // Loading state or no data
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Loading cryptocurrencies...',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  color: Colors.white54,
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -445,9 +555,23 @@ class _CryptoScreenState extends State<CryptoScreen>
 
             const SizedBox(width: 8),
 
-            // Buy Button
+            // Bookmark Button
             IconButton(
-              onPressed: () => _showTradeBottomSheet(crypto),
+              onPressed: () {
+                context.read<WatchlistBloc>().add(
+                  AddToWatchlist(
+                    assetSymbol: crypto.symbol,
+                    assetName: crypto.name,
+                    assetType: AssetType.crypto,
+                  ),
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${crypto.name} added to Watchlist'),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              },
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -455,7 +579,7 @@ class _CryptoScreenState extends State<CryptoScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  Icons.add,
+                  Icons.bookmark_border,
                   color: Theme.of(context).colorScheme.onPrimary,
                   size: 16,
                 ),
@@ -470,18 +594,7 @@ class _CryptoScreenState extends State<CryptoScreen>
   }
 
   /// Show Trade Bottom Sheet with Stop-Loss and Bracket Order support
-  void _showTradeBottomSheet(CryptoQuote crypto) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _CryptoTradeBottomSheet(
-        symbol: crypto.symbol,
-        name: crypto.name,
-        currentPrice: crypto.price,
-      ),
-    );
-  }
+  // Removed unused _showTradeBottomSheet
 }
 
 /// Order type options for trading

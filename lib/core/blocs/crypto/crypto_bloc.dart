@@ -154,37 +154,8 @@ class CryptoBloc extends Bloc<CryptoEvent, CryptoState> {
     emit(const CryptoTrading());
 
     try {
-      // Check user balance
-      final profile = await _userRepository.getUserProfile();
-      if (profile == null) {
-        emit(const CryptoTradeError('User profile not found'));
-        return;
-      }
-
-      final totalCost = event.quantity * event.price;
-
-      if (profile.stonkBalance < totalCost) {
-        emit(
-          CryptoTradeError(
-            'Insufficient balance. Required: ₹${totalCost.toStringAsFixed(2)}, Available: ₹${profile.stonkBalance.toStringAsFixed(2)}',
-          ),
-        );
-        return;
-      }
-
-      // Deduct balance
-      await _userRepository.deductFromBalance(totalCost);
-
-      // Add or update holding
-      await _holdingsRepository.addOrUpdateHolding(
-        assetSymbol: event.symbol,
-        assetName: event.name,
-        assetType: AssetType.crypto,
-        quantity: event.quantity,
-        price: event.price,
-      );
-
-      // Record transaction via executeBuyOrder
+      // Execute buy order via transaction repository
+      // This handles: balance check, deduction, holding update, and transaction record
       await _transactionRepository.executeBuyOrder(
         assetSymbol: event.symbol,
         assetName: event.name,

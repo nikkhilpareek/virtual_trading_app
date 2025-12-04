@@ -9,6 +9,456 @@ import '../widgets/crypto_logo.dart';
 import 'dart:math' as math;
 import 'dart:developer' as developer;
 
+// --- Buy Bottom Sheet Widget for Crypto Detail Screen ---
+class _CryptoDetailBuyBottomSheet extends StatefulWidget {
+  final CryptoQuote crypto;
+
+  const _CryptoDetailBuyBottomSheet({required this.crypto});
+
+  @override
+  State<_CryptoDetailBuyBottomSheet> createState() =>
+      _CryptoDetailBuyBottomSheetState();
+}
+
+class _CryptoDetailBuyBottomSheetState
+    extends State<_CryptoDetailBuyBottomSheet> {
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  void _showConfirmationDialog(double quantity, double totalAmount) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success Icon
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Success Message
+              const Text(
+                'Order Placed Successfully!',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You bought $quantity ${widget.crypto.symbol}',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Transaction Details
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow(
+                      'Quantity',
+                      '$quantity ${widget.crypto.symbol}',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Price per unit',
+                      CurrencyFormatter.formatINR(widget.crypto.price),
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    _buildDetailRow(
+                      'Total Amount',
+                      CurrencyFormatter.formatINR(totalAmount),
+                      isTotal: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // OK Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Close bottom sheet too
+                    // Refresh holdings
+                    context.read<HoldingsBloc>().add(const RefreshHoldings());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w400,
+            color: Colors.white.withOpacity(isTotal ? 1.0 : 0.7),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.w700 : FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _executeBuy() async {
+    final quantity = double.tryParse(_quantityController.text) ?? 0;
+    if (quantity <= 0) {
+      _showErrorDialog(
+        'Invalid Quantity',
+        'Please enter a valid quantity greater than 0.',
+      );
+      return;
+    }
+
+    final totalAmount = quantity * widget.crypto.price;
+
+    // Check user balance
+    final userState = context.read<UserBloc>().state;
+    if (userState is UserLoaded) {
+      final availableBalance = userState.profile.stonkBalance;
+      if (availableBalance < totalAmount) {
+        _showErrorDialog(
+          'Insufficient Funds',
+          'You need ${CurrencyFormatter.formatINR(totalAmount)} but only have ${CurrencyFormatter.formatINR(availableBalance)} available.',
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+
+    context.read<CryptoBloc>().add(
+      BuyCrypto(
+        symbol: widget.crypto.symbol,
+        name: widget.crypto.name,
+        quantity: quantity,
+        price: widget.crypto.price,
+      ),
+    );
+
+    // Wait a bit for the transaction to complete
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() => _isLoading = false);
+
+    // Show success dialog
+    if (mounted) {
+      _showConfirmationDialog(quantity, totalAmount);
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Error Icon
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Error Title
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              // Error Message
+              Text(
+                message,
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // OK Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontFamily: 'ClashDisplay',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Buy ${widget.crypto.name}',
+                style: const TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Available Balance
+              BlocBuilder<UserBloc, UserState>(
+                builder: (context, state) {
+                  if (state is UserLoaded) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Available Balance',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          ),
+                          Text(
+                            state.profile.formattedBalance,
+                            style: const TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _quantityController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Quantity',
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (value) {
+                  setState(() {}); // Trigger rebuild to update total
+                },
+              ),
+              const SizedBox(height: 12),
+              // Total Amount
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Amount',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      CurrencyFormatter.formatINR(
+                        (double.tryParse(_quantityController.text) ?? 0) *
+                            widget.crypto.price,
+                      ),
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _executeBuy,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Buy'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Crypto Detail Screen - Shows detailed information and historical data for a cryptocurrency
 class CryptoDetailScreen extends StatefulWidget {
   final CryptoQuote crypto;
@@ -279,13 +729,12 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     );
   }
 
-  void _showTradeBottomSheet(BuildContext context) {
+  void _showBuyBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          _CryptoDetailTradeBottomSheet(crypto: widget.crypto),
+      builder: (context) => _CryptoDetailBuyBottomSheet(crypto: widget.crypto),
     );
   }
 
@@ -296,12 +745,12 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showTradeBottomSheet(context),
+        onPressed: () => _showBuyBottomSheet(context),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.black,
-        icon: const Icon(Icons.swap_horiz),
+        icon: const Icon(Icons.shopping_cart),
         label: const Text(
-          'Trade',
+          'Buy',
           style: TextStyle(
             fontFamily: 'ClashDisplay',
             fontWeight: FontWeight.w600,

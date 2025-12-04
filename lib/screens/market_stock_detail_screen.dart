@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import '../core/services/yfinance_service.dart';
+import '../core/services/local_price_service.dart';
 import '../core/utils/currency_formatter.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
@@ -26,21 +27,43 @@ class MarketStockDetailScreen extends StatefulWidget {
 
 class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
   final YFinanceService _yfinanceService = YFinanceService();
+  final LocalPriceService _localPriceService = LocalPriceService();
   StockQuote? _stockQuote;
   CryptoQuote? _cryptoQuote;
   bool _isLoading = true;
   String? _errorMessage;
   Timer? _refreshTimer;
   bool _isInWatchlist = false;
+  bool _useLocalPrices = true;
+  double? _localPrice;
+  double? _localChangePercent;
 
   @override
   void initState() {
     super.initState();
-    _loadStockDetails();
+    _initializeAndLoadData();
     // Auto-refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _loadStockDetails(silent: true);
+      if (mounted) {
+        _loadStockDetails(silent: true);
+      }
     });
+  }
+
+  Future<void> _initializeAndLoadData() async {
+    try {
+      await _localPriceService.loadPrices();
+      _loadStockDetails();
+    } catch (e) {
+      developer.log(
+        'Error loading local prices: $e',
+        name: 'MarketStockDetail',
+      );
+      setState(() {
+        _useLocalPrices = false;
+      });
+      _loadStockDetails();
+    }
   }
 
   @override
@@ -50,6 +73,8 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
   }
 
   Future<void> _loadStockDetails({bool silent = false}) async {
+    if (!mounted) return;
+
     if (!silent) {
       setState(() {
         _isLoading = true;
@@ -58,7 +83,22 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
     }
 
     try {
-      if (widget.assetType == AssetType.crypto) {
+      if (widget.assetType == AssetType.stock && _useLocalPrices) {
+        // Use local JSON prices for stocks
+        final price = _localPriceService.getCurrentPrice(widget.symbol);
+        final changePercent = _localPriceService.getChangePercent(
+          widget.symbol,
+        );
+
+        if (mounted) {
+          setState(() {
+            _localPrice = price;
+            _localChangePercent = changePercent;
+            _isLoading = false;
+          });
+        }
+        developer.log('Loaded local price for ${widget.symbol}: ₹$price');
+      } else if (widget.assetType == AssetType.crypto) {
         final quote = await _yfinanceService.getCryptoQuote(widget.symbol);
         if (mounted) {
           setState(() {
@@ -67,6 +107,7 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
           });
         }
       } else {
+        // Fallback to API for stocks
         final quote = await _yfinanceService.getStockQuote(widget.symbol);
         if (mounted) {
           setState(() {
@@ -105,6 +146,9 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
     if (widget.assetType == AssetType.crypto) {
       return _cryptoQuote?.price ?? 0;
     }
+    if (_useLocalPrices && _localPrice != null) {
+      return _localPrice!;
+    }
     return _stockQuote?.price ?? 0;
   }
 
@@ -112,15 +156,18 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
     if (widget.assetType == AssetType.crypto) {
       return _cryptoQuote?.changePercent ?? 0;
     }
+    if (_useLocalPrices && _localChangePercent != null) {
+      return _localChangePercent!;
+    }
     return _stockQuote?.changePercent ?? 0;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff0a0a0a),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xff0a0a0a),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -161,7 +208,7 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
                 icon: Icon(
                   _isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
                   color: _isInWatchlist
-                      ? const Color(0xFFE5BCE7)
+                      ? Theme.of(context).colorScheme.primary
                       : Colors.white,
                 ),
                 onPressed: () {
@@ -183,9 +230,9 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5BCE7)),
+                color: Theme.of(context).colorScheme.primary,
               ),
             )
           : _errorMessage != null
@@ -211,8 +258,8 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
                   ElevatedButton(
                     onPressed: () => _loadStockDetails(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE5BCE7),
-                      foregroundColor: const Color(0xff0a0a0a),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
                     ),
                     child: const Text('Retry'),
                   ),
@@ -221,7 +268,7 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
             )
           : RefreshIndicator(
               onRefresh: () => _loadStockDetails(),
-              color: const Color(0xFFE5BCE7),
+              color: Theme.of(context).colorScheme.primary,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
@@ -233,8 +280,29 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Trade Buttons
-                    _buildTradeButtons(context),
+                    // Buy Button Only
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _showTradeDialog(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Buy',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -267,13 +335,19 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFE5BCE7).withAlpha((0.15 * 255).round()),
-            const Color(0xFF9D4EDD).withAlpha((0.05 * 255).round()),
+            Theme.of(
+              context,
+            ).colorScheme.primary.withAlpha((0.15 * 255).round()),
+            Theme.of(
+              context,
+            ).colorScheme.primary.withAlpha((0.05 * 255).round()),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFE5BCE7).withAlpha((0.2 * 255).round()),
+          color: Theme.of(
+            context,
+          ).colorScheme.primary.withAlpha((0.2 * 255).round()),
         ),
       ),
       child: Column(
@@ -343,56 +417,6 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTradeButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => _showTradeDialog(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Buy',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => _showTradeDialog(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Sell',
-              style: TextStyle(
-                fontFamily: 'ClashDisplay',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

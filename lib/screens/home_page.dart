@@ -69,7 +69,11 @@ class _HomePageState extends State<HomePage> {
         // This makes light swipes snap reliably to the next page without jitter.
         physics: const PageScrollPhysics(),
         pageSnapping: true,
-        onPageChanged: (index) => setState(() => _currentIndex = index),
+        onPageChanged: (index) {
+          setState(() => _currentIndex = index);
+          // Dismiss keyboard when swiping between pages
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
         children: _screens,
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -407,11 +411,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Keep last total balance to animate from previous value instead of always
   // starting from zero which can cause visual glitches.
   double _lastTotalBalance = 0.0;
+
   @override
   void initState() {
     super.initState();
     // Load transactions when dashboard loads
     context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
+    // Load holdings to calculate correct portfolio value
+    context.read<HoldingsBloc>().add(const LoadHoldings());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever dashboard comes into view
+    if (mounted) {
+      context.read<HoldingsBloc>().add(const RefreshHoldings());
+      context.read<TransactionBloc>().add(const LoadTransactions(limit: 10));
+      context.read<UserBloc>().add(const LoadUserProfile());
+    }
   }
 
   @override

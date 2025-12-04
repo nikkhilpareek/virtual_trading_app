@@ -23,6 +23,16 @@ class _AssetsScreenState extends State<AssetsScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-reload data whenever screen comes into view
+    if (mounted) {
+      context.read<HoldingsBloc>().add(const RefreshHoldings());
+      context.read<WatchlistBloc>().add(const LoadWatchlist());
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
