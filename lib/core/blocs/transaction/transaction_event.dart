@@ -14,10 +14,7 @@ class LoadTransactions extends TransactionEvent {
   final int limit;
   final int offset;
 
-  const LoadTransactions({
-    this.limit = 50,
-    this.offset = 0,
-  });
+  const LoadTransactions({this.limit = 50, this.offset = 0});
 
   @override
   List<Object?> get props => [limit, offset];
@@ -41,12 +38,12 @@ class ExecuteBuyOrder extends TransactionEvent {
 
   @override
   List<Object?> get props => [
-        assetSymbol,
-        assetName,
-        assetType,
-        quantity,
-        pricePerUnit,
-      ];
+    assetSymbol,
+    assetName,
+    assetType,
+    quantity,
+    pricePerUnit,
+  ];
 }
 
 /// Execute sell order
@@ -67,12 +64,41 @@ class ExecuteSellOrder extends TransactionEvent {
 
   @override
   List<Object?> get props => [
-        assetSymbol,
-        assetName,
-        assetType,
-        quantity,
-        pricePerUnit,
-      ];
+    assetSymbol,
+    assetName,
+    assetType,
+    quantity,
+    pricePerUnit,
+  ];
+}
+
+/// Execute sell order from a specific lot
+class ExecuteSellOrderFromLot extends TransactionEvent {
+  final String lotId;
+  final String assetSymbol;
+  final String assetName;
+  final AssetType assetType;
+  final double quantity;
+  final double pricePerUnit;
+
+  const ExecuteSellOrderFromLot({
+    required this.lotId,
+    required this.assetSymbol,
+    required this.assetName,
+    required this.assetType,
+    required this.quantity,
+    required this.pricePerUnit,
+  });
+
+  @override
+  List<Object?> get props => [
+    lotId,
+    assetSymbol,
+    assetName,
+    assetType,
+    quantity,
+    pricePerUnit,
+  ];
 }
 
 /// Filter transactions by type

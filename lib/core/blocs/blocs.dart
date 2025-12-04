@@ -1,6 +1,9 @@
 // Export all BLoCs
 export 'user/user.dart';
 export 'holdings/holdings.dart';
+export 'holding_lot/holding_lot_bloc.dart';
+export 'holding_lot/holding_lot_event.dart';
+export 'holding_lot/holding_lot_state.dart';
 export 'transaction/transaction.dart';
 export 'watchlist/watchlist.dart';
 export 'stock_detail/stock_detail.dart';
