@@ -143,11 +143,11 @@ class _MarketScreenState extends State<MarketScreen>
 
   Future<void> _initializeAndLoadData() async {
     try {
-      await _localPriceService.loadPrices();
-      developer.log('Local prices loaded successfully', name: 'MarketScreen');
+      // LocalPriceService loads on demand, no need to pre-load
+      developer.log('MarketScreen initialized', name: 'MarketScreen');
       _loadMarketData();
     } catch (e) {
-      developer.log('Error loading local prices: $e', name: 'MarketScreen');
+      developer.log('Error in initialization: $e', name: 'MarketScreen');
       setState(() {
         _useLocalPrices = false;
       });
@@ -271,25 +271,13 @@ class _MarketScreenState extends State<MarketScreen>
       final List<MarketAsset> assets = [];
 
       if (_useLocalPrices) {
-        // Load from local JSON
-        final availableSymbols = _localPriceService.getAvailableSymbols();
-        developer.log(
-          'Loading ${availableSymbols.length} stocks from JSON',
-          name: 'MarketScreen',
-        );
+        // Load from local JSON - fetch prices for known symbols
+        developer.log('Loading stocks from JSON', name: 'MarketScreen');
 
-        for (final symbol in availableSymbols) {
-          final assetDef = _assetDefinitions.firstWhere(
-            (a) => a['symbol'] == symbol,
-            orElse: () => {
-              'symbol': symbol,
-              'name': symbol,
-              'type': AssetType.stock,
-            },
-          );
+        for (final assetDef in _assetDefinitions) {
+          final symbol = assetDef['symbol'] as String;
 
-          final price = _localPriceService.getCurrentPrice(symbol);
-          final changePercent = _localPriceService.getChangePercent(symbol);
+          final price = await _localPriceService.getStockPrice(symbol);
 
           if (price != null) {
             assets.add(
@@ -297,15 +285,12 @@ class _MarketScreenState extends State<MarketScreen>
                 symbol: symbol,
                 name: assetDef['name'] as String,
                 currentPrice: price,
-                changePercentage: changePercent,
+                changePercentage: 0.0,
                 type: AssetType.stock,
                 lastUpdated: DateTime.now(),
               ),
             );
-            developer.log(
-              'Loaded $symbol: ₹$price (${changePercent.toStringAsFixed(2)}%)',
-              name: 'MarketScreen',
-            );
+            developer.log('Loaded $symbol: ₹$price', name: 'MarketScreen');
           }
         }
       } else {

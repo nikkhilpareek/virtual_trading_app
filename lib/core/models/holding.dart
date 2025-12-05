@@ -13,6 +13,10 @@ class Holding extends Equatable {
   final double quantity;
   final double averagePrice;
   final double? currentPrice;
+  // Risk management (optional)
+  final double? stopLoss; // Sell all if price <= stopLoss
+  final double? bracketLower; // Lower bound; sell if price < bracketLower
+  final double? bracketUpper; // Upper bound; sell if price > bracketUpper
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +29,9 @@ class Holding extends Equatable {
     required this.quantity,
     required this.averagePrice,
     this.currentPrice,
+    this.stopLoss,
+    this.bracketLower,
+    this.bracketUpper,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -39,8 +46,17 @@ class Holding extends Equatable {
       assetType: AssetType.fromJson(json['asset_type'] as String),
       quantity: (json['quantity'] as num).toDouble(),
       averagePrice: (json['average_price'] as num).toDouble(),
-      currentPrice: json['current_price'] != null 
-          ? (json['current_price'] as num).toDouble() 
+      currentPrice: json['current_price'] != null
+          ? (json['current_price'] as num).toDouble()
+          : null,
+      stopLoss: json['stop_loss'] != null
+          ? (json['stop_loss'] as num).toDouble()
+          : null,
+      bracketLower: json['bracket_lower'] != null
+          ? (json['bracket_lower'] as num).toDouble()
+          : null,
+      bracketUpper: json['bracket_upper'] != null
+          ? (json['bracket_upper'] as num).toDouble()
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -58,6 +74,9 @@ class Holding extends Equatable {
       'quantity': quantity,
       'average_price': averagePrice,
       'current_price': currentPrice,
+      'stop_loss': stopLoss,
+      'bracket_lower': bracketLower,
+      'bracket_upper': bracketUpper,
       'total_invested': totalInvested,
       'current_value': currentValue,
       'profit_loss': profitLoss,
@@ -77,6 +96,9 @@ class Holding extends Equatable {
     double? quantity,
     double? averagePrice,
     double? currentPrice,
+    double? stopLoss,
+    double? bracketLower,
+    double? bracketUpper,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -89,6 +111,9 @@ class Holding extends Equatable {
       quantity: quantity ?? this.quantity,
       averagePrice: averagePrice ?? this.averagePrice,
       currentPrice: currentPrice ?? this.currentPrice,
+      stopLoss: stopLoss ?? this.stopLoss,
+      bracketLower: bracketLower ?? this.bracketLower,
+      bracketUpper: bracketUpper ?? this.bracketUpper,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -100,7 +125,8 @@ class Holding extends Equatable {
   double get totalInvested => quantity * averagePrice;
 
   /// Current value of holding (quantity × current price)
-  double get currentValue => currentPrice != null ? quantity * currentPrice! : totalInvested;
+  double get currentValue =>
+      currentPrice != null ? quantity * currentPrice! : totalInvested;
 
   /// Profit or loss amount
   double get profitLoss => currentValue - totalInvested;
@@ -120,35 +146,41 @@ class Holding extends Equatable {
   /// Formatted strings for display
 
   String get formattedQuantity => quantity.toStringAsFixed(6);
-  
+
   String get formattedAveragePrice => CurrencyFormatter.formatINR(averagePrice);
-  
-  String get formattedCurrentPrice => currentPrice != null ? CurrencyFormatter.formatINR(currentPrice!) : '--';
-  
-  String get formattedTotalInvested => CurrencyFormatter.formatINR(totalInvested);
-  
+
+  String get formattedCurrentPrice =>
+      currentPrice != null ? CurrencyFormatter.formatINR(currentPrice!) : '--';
+
+  String get formattedTotalInvested =>
+      CurrencyFormatter.formatINR(totalInvested);
+
   String get formattedCurrentValue => CurrencyFormatter.formatINR(currentValue);
-  
+
   String get formattedProfitLoss {
     final sign = profitLoss >= 0 ? '+' : '';
     return '$sign${CurrencyFormatter.formatINR(profitLoss).replaceAll('₹', '')}';
   }
-  
-  String get formattedProfitLossPercentage => CurrencyFormatter.formatPercentage(profitLossPercentage);
+
+  String get formattedProfitLossPercentage =>
+      CurrencyFormatter.formatPercentage(profitLossPercentage);
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        assetSymbol,
-        assetName,
-        assetType,
-        quantity,
-        averagePrice,
-        currentPrice,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    userId,
+    assetSymbol,
+    assetName,
+    assetType,
+    quantity,
+    averagePrice,
+    currentPrice,
+    stopLoss,
+    bracketLower,
+    bracketUpper,
+    createdAt,
+    updatedAt,
+  ];
 
   @override
   String toString() {

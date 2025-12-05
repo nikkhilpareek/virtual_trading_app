@@ -8,6 +8,7 @@ import '../core/utils/currency_formatter.dart';
 import '../widgets/crypto_logo.dart';
 import 'crypto_detail_screen.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 
 /// CryptoScreen
 /// Complete cryptocurrency trading screen with market data, holdings, and buy/sell functionality
@@ -185,8 +186,8 @@ class _CryptoScreenState extends State<CryptoScreen>
                   ),
                 ),
                 onChanged: (value) {
-                  // Debounce search with production-level delay
-                  Future.delayed(const Duration(milliseconds: 300), () {
+                  // Debounce search with reduced delay for better responsiveness
+                  Future.delayed(const Duration(milliseconds: 150), () {
                     if (_searchController.text == value) {
                       _performSearch(value);
                     }
@@ -221,6 +222,8 @@ class _CryptoScreenState extends State<CryptoScreen>
       return;
     }
 
+    if (!mounted) return;
+
     setState(() => _isSearching = true);
 
     try {
@@ -231,9 +234,23 @@ class _CryptoScreenState extends State<CryptoScreen>
         'service': service,
       });
 
-      if (searchResults.isNotEmpty && mounted) {
-        // Fetch prices for search results in isolate
-        final symbols = searchResults.map((r) => r.symbol).toList();
+      if (!mounted) return;
+
+      if (searchResults.isNotEmpty) {
+        // Extract symbols from search results
+        final symbols = (searchResults as List).map((r) {
+          if (r is Map<String, dynamic>) {
+            return r['symbol'] as String;
+          }
+          // Fallback for direct CryptoSearchResult serialization
+          return r.toString();
+        }).toList();
+
+        developer.log(
+          'Search found ${searchResults.length} results: $symbols',
+          name: 'CryptoScreen',
+        );
+
         final cryptos = await compute(_fetchPricesInIsolate, {
           'symbols': symbols,
           'service': service,
@@ -241,17 +258,30 @@ class _CryptoScreenState extends State<CryptoScreen>
 
         if (mounted) {
           setState(() {
-            _filteredCryptos = cryptos;
+            _filteredCryptos = (cryptos as List).cast<CryptoQuote>();
             _isSearching = false;
           });
+          developer.log(
+            'Displaying ${_filteredCryptos.length} search results',
+            name: 'CryptoScreen',
+          );
         }
-      } else if (mounted) {
-        setState(() {
-          _filteredCryptos = [];
-          _isSearching = false;
-        });
+      } else {
+        if (mounted) {
+          setState(() {
+            _filteredCryptos = [];
+            _isSearching = false;
+          });
+          developer.log('No search results found', name: 'CryptoScreen');
+        }
       }
-    } catch (e) {
+    } catch (e, st) {
+      developer.log(
+        'Search error: $e',
+        name: 'CryptoScreen',
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) {
         setState(() {
           _filteredCryptos = [];
@@ -262,12 +292,14 @@ class _CryptoScreenState extends State<CryptoScreen>
   }
 
   // Static isolate function for search
-  static Future<List<dynamic>> _searchCryptoInIsolate(
+  static Future<List<Map<String, String>>> _searchCryptoInIsolate(
     Map<String, dynamic> params,
   ) async {
     final String query = params['query'] as String;
     final FreeCryptoService service = params['service'] as FreeCryptoService;
-    return await service.searchCrypto(query);
+    final results = await service.searchCrypto(query);
+    // Convert CryptoSearchResult to Map for isolate serialization
+    return results.map((r) => {'symbol': r.symbol, 'name': r.name}).toList();
   }
 
   // Static isolate function for price fetching
@@ -287,27 +319,38 @@ class _CryptoScreenState extends State<CryptoScreen>
 
   /// Market Tab - Shows all available cryptocurrencies
   Widget _buildMarketTab() {
-    // If searching, show filtered results
-    if (_isSearching && _filteredCryptos.isNotEmpty) {
-      return RefreshIndicator(
-        color: Theme.of(context).colorScheme.primary,
-        onRefresh: () async {
-          _performSearch(_searchController.text);
-          await Future.delayed(const Duration(milliseconds: 500));
-        },
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-          itemCount: _filteredCryptos.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            return _buildCryptoCard(_filteredCryptos[index]);
+    // If search bar has text, show search results (filtered or empty)
+    if (_searchController.text.isNotEmpty) {
+      // If we have filtered results, show them
+      if (_filteredCryptos.isNotEmpty) {
+        return RefreshIndicator(
+          color: Theme.of(context).colorScheme.primary,
+          onRefresh: () async {
+            _performSearch(_searchController.text);
+            // Reduced delay for faster UI response
+            await Future.delayed(const Duration(milliseconds: 200));
           },
-        ),
-      );
-    }
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+            itemCount: _filteredCryptos.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return _buildCryptoCard(_filteredCryptos[index]);
+            },
+          ),
+        );
+      }
 
-    // If searching but no results
-    if (_isSearching && _filteredCryptos.isEmpty) {
+      // Show loading or no results
+      if (_isSearching) {
+        return Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+
+      // Search completed with no results
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -409,7 +452,8 @@ class _CryptoScreenState extends State<CryptoScreen>
               context.read<CryptoBloc>().add(
                 const RefreshCryptoMarket(limit: 5),
               );
-              await Future.delayed(const Duration(milliseconds: 500));
+              // Reduced delay for faster UI response
+              await Future.delayed(const Duration(milliseconds: 200));
             },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
@@ -723,7 +767,8 @@ class _CryptoTradeBottomSheetState extends State<_CryptoTradeBottomSheet> {
       );
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Reduced delay for faster UI response
+    await Future.delayed(const Duration(milliseconds: 200));
 
     if (mounted) {
       Navigator.pop(context);
@@ -757,7 +802,8 @@ class _CryptoTradeBottomSheetState extends State<_CryptoTradeBottomSheet> {
       ),
     );
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Reduced delay for faster UI response
+    await Future.delayed(const Duration(milliseconds: 200));
 
     if (mounted) {
       Navigator.pop(context);
@@ -814,7 +860,8 @@ class _CryptoTradeBottomSheetState extends State<_CryptoTradeBottomSheet> {
       ),
     );
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Reduced delay for faster UI response
+    await Future.delayed(const Duration(milliseconds: 200));
 
     if (mounted) {
       Navigator.pop(context);

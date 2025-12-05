@@ -3,9 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/utils/currency_formatter.dart';
-import '../core/repositories/holding_lot_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/repositories/holdings_repository.dart';
 
 class StockDetailScreen extends StatelessWidget {
   final Holding holding;
@@ -19,11 +18,6 @@ class StockDetailScreen extends StatelessWidget {
         BlocProvider(
           create: (context) =>
               StockDetailBloc()..add(LoadStockDetail(holding.assetSymbol)),
-        ),
-        BlocProvider(
-          create: (context) =>
-              HoldingLotBloc(HoldingLotRepository(Supabase.instance.client))
-                ..add(LoadLotsBySymbol(holding.assetSymbol)),
         ),
       ],
       child: _StockDetailView(holding: holding),
@@ -44,7 +38,6 @@ class _StockDetailViewState extends State<_StockDetailView> {
   @override
   void initState() {
     super.initState();
-    // Load pending orders for this holding
     context.read<OrderBloc>().add(const LoadPendingOrders());
   }
 
@@ -89,9 +82,6 @@ class _StockDetailViewState extends State<_StockDetailView> {
             onPressed: () {
               context.read<StockDetailBloc>().add(
                 RefreshStockDetail(holding.assetSymbol),
-              );
-              context.read<HoldingLotBloc>().add(
-                LoadLotsBySymbol(holding.assetSymbol),
               );
             },
             icon: Icon(
@@ -171,8 +161,6 @@ class _StockDetailViewState extends State<_StockDetailView> {
                     children: [
                       _buildCurrentHoldingCard(context, state.holding),
                       const SizedBox(height: 24),
-                      _buildPurchaseLotsSection(context),
-                      const SizedBox(height: 24),
                       _buildActiveOrdersSection(context),
                       const SizedBox(height: 24),
                       _buildStatisticsSection(context, state),
@@ -197,6 +185,18 @@ class _StockDetailViewState extends State<_StockDetailView> {
   Widget _buildCurrentHoldingCard(BuildContext context, Holding? holdingData) {
     final currentHolding = holdingData ?? holding;
     final isPositive = currentHolding.profitLoss >= 0;
+
+    Color typeColor;
+    switch (currentHolding.assetType) {
+      case AssetType.stock:
+        typeColor = Colors.blue;
+        break;
+      case AssetType.crypto:
+        typeColor = Colors.orange;
+        break;
+      default:
+        typeColor = Colors.green;
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -242,11 +242,7 @@ class _StockDetailViewState extends State<_StockDetailView> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: currentHolding.assetType == AssetType.stock
-                      ? Colors.blue.withAlpha((0.2 * 255).round())
-                      : currentHolding.assetType == AssetType.crypto
-                      ? Colors.orange.withAlpha((0.2 * 255).round())
-                      : Colors.green.withAlpha((0.2 * 255).round()),
+                  color: typeColor.withAlpha((0.2 * 255).round()),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -255,11 +251,7 @@ class _StockDetailViewState extends State<_StockDetailView> {
                     fontFamily: 'ClashDisplay',
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: currentHolding.assetType == AssetType.stock
-                        ? Colors.blue
-                        : currentHolding.assetType == AssetType.crypto
-                        ? Colors.orange
-                        : Colors.green,
+                    color: typeColor,
                   ),
                 ),
               ),
@@ -775,204 +767,7 @@ class _StockDetailViewState extends State<_StockDetailView> {
     );
   }
 
-  /// Build Purchase Lots Section
-  Widget _buildPurchaseLotsSection(BuildContext context) {
-    return BlocBuilder<HoldingLotBloc, HoldingLotState>(
-      builder: (context, state) {
-        if (state is HoldingLotLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          );
-        }
-
-        if (state is HoldingLotsEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        if (state is HoldingLotsLoaded && state.lots.isNotEmpty) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Purchase Lots',
-                    style: TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withAlpha((0.2 * 255).round()),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${state.lots.length} ${state.lots.length == 1 ? 'Lot' : 'Lots'}',
-                      style: TextStyle(
-                        fontFamily: 'ClashDisplay',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...state.lots.map((lot) => _buildLotCard(context, lot)),
-            ],
-          );
-        }
-
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  /// Build individual lot card
-  Widget _buildLotCard(BuildContext context, HoldingLot lot) {
-    final isPositive = lot.profitLoss >= 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xff121212),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isPositive
-              ? Colors.green.withAlpha((0.3 * 255).round())
-              : Colors.red.withAlpha((0.3 * 255).round()),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Purchased: ${DateFormat('MMM dd, yyyy').format(lot.purchaseDate)}',
-                    style: TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 12,
-                      color: Colors.white.withAlpha((0.6 * 255).round()),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${lot.quantity.toStringAsFixed(2)} units',
-                    style: const TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    lot.formattedPurchasePrice,
-                    style: const TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    lot.formattedProfitLoss,
-                    style: TextStyle(
-                      fontFamily: 'ClashDisplay',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isPositive ? Colors.green : Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _createStopLossForLot(context, lot),
-                  icon: const Icon(Icons.shield, size: 16),
-                  label: const Text('Stop-Loss'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _sellLot(context, lot),
-                  icon: const Icon(Icons.sell, size: 16),
-                  label: const Text('Sell'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Create stop-loss for a specific lot
-  void _createStopLossForLot(BuildContext context, HoldingLot lot) {
-    _showTradeDialog(
-      context,
-      holding,
-      'stoploss',
-      lotId: lot.id,
-      lotQuantity: lot.quantity,
-    );
-  }
-
-  /// Sell a specific lot
-  void _sellLot(BuildContext context, HoldingLot lot) {
-    _showTradeDialog(
-      context,
-      holding,
-      'sell',
-      lotId: lot.id,
-      lotQuantity: lot.quantity,
-    );
-  }
+  /// Lot system removed; purchase lots UI deleted
 
   /// Build Order Type Section (Sell, Stop-Loss, Bracket)
   Widget _buildOrderTypeSection(BuildContext context) {
@@ -1846,26 +1641,7 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
   }
 
   void _createStopLossOrder(BuildContext context) {
-    final quantity = double.tryParse(_quantityController.text) ?? 0;
     final triggerPrice = double.tryParse(_triggerPriceController.text) ?? 0;
-
-    if (quantity <= 0) {
-      _showError(
-        context,
-        'Invalid Quantity',
-        'Please enter a valid quantity greater than 0.',
-      );
-      return;
-    }
-
-    if (quantity > widget.holding.quantity) {
-      _showError(
-        context,
-        'Insufficient Quantity',
-        'You only have ${widget.holding.quantity.toStringAsFixed(2)} units available.',
-      );
-      return;
-    }
 
     if (triggerPrice <= 0) {
       _showError(
@@ -1876,21 +1652,13 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
       return;
     }
 
-    context.read<OrderBloc>().add(
-      CreateStopLossOrder(
-        assetSymbol: widget.holding.assetSymbol,
-        assetName: widget.holding.assetName,
-        assetType: widget.holding.assetType,
-        orderSide: OrderSide.sell,
-        quantity: quantity,
-        triggerPrice: triggerPrice,
-      ),
-    );
+    final repo = HoldingsRepository();
+    repo.setStopLoss(widget.holding.assetSymbol, triggerPrice);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
-          'Stop-Loss order created successfully!',
+          'Stop-Loss set successfully! Auto-sell will trigger on breach.',
           style: TextStyle(fontFamily: 'ClashDisplay'),
         ),
         backgroundColor: Colors.green,
@@ -1900,34 +1668,14 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
     );
 
     // Reset inputs
-    _quantityController.clear();
     setState(() => _stopLossEnabled = false);
   }
 
   void _createBracketOrder(BuildContext context) {
-    final quantity = double.tryParse(_quantityController.text) ?? 0;
     final stopLossPrice = double.tryParse(_stopLossPriceController.text) ?? 0;
     final targetPrice = double.tryParse(_targetPriceController.text) ?? 0;
     final currentPrice =
         widget.holding.currentPrice ?? widget.holding.averagePrice;
-
-    if (quantity <= 0) {
-      _showError(
-        context,
-        'Invalid Quantity',
-        'Please enter a valid quantity greater than 0.',
-      );
-      return;
-    }
-
-    if (quantity > widget.holding.quantity) {
-      _showError(
-        context,
-        'Insufficient Quantity',
-        'You only have ${widget.holding.quantity.toStringAsFixed(2)} units available.',
-      );
-      return;
-    }
 
     if (stopLossPrice <= 0 || targetPrice <= 0) {
       _showError(
@@ -1947,23 +1695,17 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
       return;
     }
 
-    context.read<OrderBloc>().add(
-      CreateBracketOrder(
-        assetSymbol: widget.holding.assetSymbol,
-        assetName: widget.holding.assetName,
-        assetType: widget.holding.assetType,
-        orderSide: OrderSide.sell,
-        quantity: quantity,
-        entryPrice: currentPrice,
-        stopLossPrice: stopLossPrice,
-        targetPrice: targetPrice,
-      ),
+    final repo = HoldingsRepository();
+    repo.setBracket(
+      widget.holding.assetSymbol,
+      lower: stopLossPrice,
+      upper: targetPrice,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
-          'Bracket order created successfully!',
+          'Bracket set successfully! Auto-sell will trigger outside range.',
           style: TextStyle(fontFamily: 'ClashDisplay'),
         ),
         backgroundColor: Colors.green,
@@ -1973,7 +1715,6 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
     );
 
     // Reset inputs
-    _quantityController.clear();
     setState(() => _bracketEnabled = false);
   }
 
@@ -2168,10 +1909,6 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
                     Navigator.of(context).pop(); // Close bottom sheet
                     // Refresh data - Force reload from database
                     context.read<HoldingsBloc>().add(const RefreshHoldings());
-                    // Refresh lots
-                    context.read<HoldingLotBloc>().add(
-                      LoadLotsBySymbol(widget.holding.assetSymbol),
-                    );
                     // Use a longer delay to ensure database transaction commits
                     await Future.delayed(const Duration(milliseconds: 800));
                     if (context.mounted) {
@@ -2343,30 +2080,16 @@ class _TradeBottomSheetState extends State<_TradeBottomSheet> {
               ),
             );
           } else {
-            // If a specific lot was provided, sell from that lot
-            if (widget.lotId != null) {
-              context.read<TransactionBloc>().add(
-                ExecuteSellOrderFromLot(
-                  lotId: widget.lotId!,
-                  assetSymbol: widget.holding.assetSymbol,
-                  assetName: widget.holding.assetName,
-                  assetType: widget.holding.assetType,
-                  quantity: quantity,
-                  pricePerUnit: currentPrice,
-                ),
-              );
-            } else {
-              // Fallback to FIFO sell across lots
-              context.read<TransactionBloc>().add(
-                ExecuteSellOrder(
-                  assetSymbol: widget.holding.assetSymbol,
-                  assetName: widget.holding.assetName,
-                  assetType: widget.holding.assetType,
-                  quantity: quantity,
-                  pricePerUnit: currentPrice,
-                ),
-              );
-            }
+            // Simple holdings: always execute aggregate sell
+            context.read<TransactionBloc>().add(
+              ExecuteSellOrder(
+                assetSymbol: widget.holding.assetSymbol,
+                assetName: widget.holding.assetName,
+                assetType: widget.holding.assetType,
+                quantity: quantity,
+                pricePerUnit: currentPrice,
+              ),
+            );
           }
           // Wait for transaction to complete
           await Future.delayed(const Duration(milliseconds: 1500));
