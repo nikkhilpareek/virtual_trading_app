@@ -60,8 +60,8 @@ class _OrdersScreenState extends State<OrdersScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFE5BCE7),
-          labelColor: const Color(0xFFE5BCE7),
+          indicatorColor: Theme.of(context).colorScheme.primary,
+          labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.white.withAlpha((0.5 * 255).round()),
           labelStyle: const TextStyle(
             fontFamily: 'ClashDisplay',
@@ -76,8 +76,10 @@ class _OrdersScreenState extends State<OrdersScreen>
       body: BlocBuilder<OrderBloc, OrderState>(
         builder: (context, state) {
           if (state is OrderLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFE5BCE7)),
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             );
           }
 
@@ -175,7 +177,7 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
 
     return RefreshIndicator(
-      color: const Color(0xFFE5BCE7),
+      color: Theme.of(context).colorScheme.primary,
       onRefresh: () async {
         context.read<OrderBloc>().add(const RefreshOrders());
         await Future.delayed(const Duration(milliseconds: 500));
@@ -341,7 +343,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                         _buildDetailRow(
                           'Fill Price',
                           CurrencyFormatter.formatINR(order.avgFillPrice!),
-                          valueColor: const Color(0xFFE5BCE7),
+                          valueColor: Theme.of(context).colorScheme.primary,
                         ),
                       _buildDetailRow(
                         'Created',

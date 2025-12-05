@@ -8,6 +8,45 @@ enum OrderType {
   bracket, // Entry order with both stop-loss and take-profit
 }
 
+/// Enum representing stop-loss types
+enum StopLossType {
+  fixed, // Fixed stop-loss price that doesn't change
+  trailing, // Trailing stop-loss that follows price upwards (for buy) or downwards (for sell)
+}
+
+/// Extension to convert StopLossType enum to string
+extension StopLossTypeExtension on StopLossType {
+  String toDbString() {
+    switch (this) {
+      case StopLossType.fixed:
+        return 'fixed';
+      case StopLossType.trailing:
+        return 'trailing';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case StopLossType.fixed:
+        return 'Fixed Stop-Loss';
+      case StopLossType.trailing:
+        return 'Trailing Stop-Loss';
+    }
+  }
+}
+
+/// Helper function to parse StopLossType from database string
+StopLossType stopLossTypeFromDbString(String value) {
+  switch (value) {
+    case 'fixed':
+      return StopLossType.fixed;
+    case 'trailing':
+      return StopLossType.trailing;
+    default:
+      throw ArgumentError('Unknown stop-loss type: $value');
+  }
+}
+
 /// Enum representing the side of an order (buy or sell)
 enum OrderSide { buy, sell }
 
@@ -200,6 +239,15 @@ class Order {
   final double? stopLossPrice; // For bracket: stop-loss exit
   final double? targetPrice; // For bracket: take-profit exit
 
+  // Trailing stop-loss support
+  final StopLossType? stopLossType; // Type of stop-loss (fixed or trailing)
+  final double?
+  trailingStopPercent; // Trailing stop-loss percentage (e.g., 2.5 for 2.5%)
+  final double?
+  highestPrice; // Highest price reached since order creation (for trailing buy stop-loss)
+  final double?
+  lowestPrice; // Lowest price reached since order creation (for trailing sell stop-loss)
+
   // Order status and execution
   final OrderStatus status;
   final double filledQuantity;
@@ -261,6 +309,10 @@ class Order {
     this.failureReason,
     this.notes,
     this.clientOrderId,
+    this.stopLossType = StopLossType.fixed,
+    this.trailingStopPercent,
+    this.highestPrice,
+    this.lowestPrice,
   });
 
   /// Calculate remaining quantity to be filled
@@ -376,6 +428,18 @@ class Order {
       failureReason: json['failure_reason'] as String?,
       notes: json['notes'] as String?,
       clientOrderId: json['client_order_id'] as String?,
+      stopLossType: json['stop_loss_type'] != null
+          ? stopLossTypeFromDbString(json['stop_loss_type'] as String)
+          : StopLossType.fixed,
+      trailingStopPercent: json['trailing_stop_percent'] != null
+          ? (json['trailing_stop_percent'] as num).toDouble()
+          : null,
+      highestPrice: json['highest_price'] != null
+          ? (json['highest_price'] as num).toDouble()
+          : null,
+      lowestPrice: json['lowest_price'] != null
+          ? (json['lowest_price'] as num).toDouble()
+          : null,
     );
   }
 
@@ -412,6 +476,10 @@ class Order {
       'failure_reason': failureReason,
       'notes': notes,
       'client_order_id': clientOrderId,
+      'stop_loss_type': stopLossType?.toDbString() ?? 'fixed',
+      'trailing_stop_percent': trailingStopPercent,
+      'highest_price': highestPrice,
+      'lowest_price': lowestPrice,
     };
   }
 
@@ -447,6 +515,10 @@ class Order {
     String? failureReason,
     String? notes,
     String? clientOrderId,
+    StopLossType? stopLossType,
+    double? trailingStopPercent,
+    double? highestPrice,
+    double? lowestPrice,
   }) {
     return Order(
       id: id ?? this.id,
@@ -479,6 +551,10 @@ class Order {
       failureReason: failureReason ?? this.failureReason,
       notes: notes ?? this.notes,
       clientOrderId: clientOrderId ?? this.clientOrderId,
+      stopLossType: stopLossType ?? this.stopLossType,
+      trailingStopPercent: trailingStopPercent ?? this.trailingStopPercent,
+      highestPrice: highestPrice ?? this.highestPrice,
+      lowestPrice: lowestPrice ?? this.lowestPrice,
     );
   }
 
