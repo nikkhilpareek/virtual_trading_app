@@ -56,37 +56,73 @@ app.add_middleware(
 )
 
 def get_stock_data(symbol: str, suffix: str = ".NS"):
-    """Helper function to fetch stock data with error handling"""
+    """Helper function to fetch stock data with robust fallbacks for NSE/BSE."""
     try:
-        ticker = f"{symbol}{suffix}"
-        stock = yf.Ticker(ticker)
-        
-        # Get latest data
-        hist = stock.history(period="5d")
-        if hist.empty:
+        base_symbol = symbol.upper().strip()
+        attempted = []
+
+        def try_history(tkr: str):
+            s = yf.Ticker(tkr)
+            # Primary attempt
+            h = s.history(period="5d")
+            if h is None or h.empty:
+                # Fallback: direct download with repair and explicit interval
+                h = yf.download(tkr, period="5d", interval="1d", progress=False, auto_adjust=False, repair=True)
+            return s, h
+
+        # 1) Try NSE first
+        ticker = f"{base_symbol}{suffix}"
+        attempted.append(ticker)
+        stock, hist = try_history(ticker)
+
+        # 2) If empty, try BSE
+        if hist is None or hist.empty:
+            ticker_bse = f"{base_symbol}.BO"
+            attempted.append(ticker_bse)
+            stock, hist = try_history(ticker_bse)
+
+        # 3) If still empty, try without any suffix (Yahoo sometimes maps automatically)
+        if hist is None or hist.empty:
+            ticker_raw = base_symbol
+            attempted.append(ticker_raw)
+            stock, hist = try_history(ticker_raw)
+
+        if hist is None or hist.empty:
+            print(f"No data for {base_symbol}. Tried: {attempted}")
             return None
-            
-        info = stock.info
+
         latest = hist.iloc[-1]
         previous = hist.iloc[-2] if len(hist) > 1 else latest
-        
+
         current_price = float(latest['Close'])
         previous_close = float(previous['Close'])
         change = current_price - previous_close
         change_percent = (change / previous_close * 100) if previous_close > 0 else 0.0
-        
+
+        # Try to fetch company name, but don't fail if unavailable
+        name = base_symbol
+        try:
+            # Prefer get_info() when available; fall back to .info
+            if hasattr(stock, "get_info"):
+                info = stock.get_info()
+            else:
+                info = getattr(stock, "info", {}) or {}
+            name = info.get('longName', info.get('shortName', base_symbol))
+        except Exception:
+            pass
+
         return {
-            "symbol": symbol.upper(),
+            "symbol": base_symbol,
             "price": round(current_price, 2),
             "change": round(change, 2),
             "changePercent": round(change_percent, 2),
-            "volume": int(latest.get('Volume', 0)),
+            "volume": int(latest.get('Volume', 0)) if isinstance(latest.get('Volume', 0), (int, float)) else 0,
             "previousClose": round(previous_close, 2),
             "open": round(float(latest['Open']), 2),
             "high": round(float(latest['High']), 2),
             "low": round(float(latest['Low']), 2),
-            "latestTradingDay": latest.name.strftime('%Y-%m-%d'),
-            "name": info.get('longName', symbol.upper()),
+            "latestTradingDay": latest.name.strftime('%Y-%m-%d') if hasattr(latest, 'name') else datetime.now().strftime('%Y-%m-%d'),
+            "name": name,
         }
     except Exception as e:
         print(f"Error fetching {symbol}: {str(e)}")

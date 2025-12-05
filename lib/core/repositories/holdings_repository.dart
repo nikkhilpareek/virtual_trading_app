@@ -21,11 +21,14 @@ class HoldingsRepository {
           .eq('user_id', currentUserId!)
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => Holding.fromJson(json))
-          .toList();
-    } catch (e,st) {
-      developer.log('Error fetching holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
+      return (response as List).map((json) => Holding.fromJson(json)).toList();
+    } catch (e, st) {
+      developer.log(
+        'Error fetching holdings',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -42,9 +45,7 @@ class HoldingsRepository {
         .eq('user_id', currentUserId!)
         .order('created_at', ascending: false)
         .map((data) {
-          return (data as List)
-              .map((json) => Holding.fromJson(json))
-              .toList();
+          return (data as List).map((json) => Holding.fromJson(json)).toList();
         });
   }
 
@@ -62,8 +63,13 @@ class HoldingsRepository {
 
       if (response == null) return null;
       return Holding.fromJson(response);
-    } catch (e,st) {
-      developer.log('Error fetching holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error fetching holdings',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -97,7 +103,10 @@ class HoldingsRepository {
               'total_invested': newTotalInvested,
               'current_value': newQuantity * price,
               'profit_loss': (newQuantity * price) - newTotalInvested,
-              'profit_loss_percentage': ((newQuantity * price) - newTotalInvested) / newTotalInvested * 100,
+              'profit_loss_percentage':
+                  ((newQuantity * price) - newTotalInvested) /
+                  newTotalInvested *
+                  100,
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', existing.id)
@@ -118,6 +127,7 @@ class HoldingsRepository {
               'quantity': quantity,
               'average_price': price,
               'current_price': price,
+              // risk fields default to null
               'total_invested': totalInvested,
               'current_value': totalInvested,
               'profit_loss': 0.0,
@@ -128,9 +138,93 @@ class HoldingsRepository {
 
         return Holding.fromJson(response);
       }
-    } catch (e,st) {
-      developer.log('Error adding/updating holding', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error adding/updating holding',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
+    }
+  }
+
+  /// Set or update stop-loss for a holding
+  Future<bool> setStopLoss(String assetSymbol, double? stopLoss) async {
+    try {
+      if (currentUserId == null) throw Exception('User not authenticated');
+      await _supabase
+          .from('holdings')
+          .update({
+            'stop_loss': stopLoss,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', currentUserId!)
+          .eq('asset_symbol', assetSymbol);
+      return true;
+    } catch (e, st) {
+      developer.log(
+        'Error setting stop-loss',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
+      return false;
+    }
+  }
+
+  /// Set or update bracket bounds for a holding (either bound can be null)
+  Future<bool> setBracket(
+    String assetSymbol, {
+    double? lower,
+    double? upper,
+  }) async {
+    try {
+      if (currentUserId == null) throw Exception('User not authenticated');
+      await _supabase
+          .from('holdings')
+          .update({
+            'bracket_lower': lower,
+            'bracket_upper': upper,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', currentUserId!)
+          .eq('asset_symbol', assetSymbol);
+      return true;
+    } catch (e, st) {
+      developer.log(
+        'Error setting bracket',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
+      return false;
+    }
+  }
+
+  /// Clear all risk rules for a holding
+  Future<bool> clearRiskRules(String assetSymbol) async {
+    try {
+      if (currentUserId == null) throw Exception('User not authenticated');
+      await _supabase
+          .from('holdings')
+          .update({
+            'stop_loss': null,
+            'bracket_lower': null,
+            'bracket_upper': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', currentUserId!)
+          .eq('asset_symbol', assetSymbol);
+      return true;
+    } catch (e, st) {
+      developer.log(
+        'Error clearing risk rules',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
+      return false;
     }
   }
 
@@ -169,7 +263,8 @@ class HoldingsRepository {
               'total_invested': newTotalInvested,
               'current_value': newCurrentValue,
               'profit_loss': newCurrentValue - newTotalInvested,
-              'profit_loss_percentage': (newCurrentValue - newTotalInvested) / newTotalInvested * 100,
+              'profit_loss_percentage':
+                  (newCurrentValue - newTotalInvested) / newTotalInvested * 100,
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', existing.id)
@@ -178,14 +273,22 @@ class HoldingsRepository {
 
         return Holding.fromJson(response);
       }
-    } catch (e,st) {
-      developer.log('Error reducing holding', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error reducing holding',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
 
   /// Update current price for a holding
-  Future<Holding?> updateCurrentPrice(String assetSymbol, double newPrice) async {
+  Future<Holding?> updateCurrentPrice(
+    String assetSymbol,
+    double newPrice,
+  ) async {
     try {
       if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -194,7 +297,8 @@ class HoldingsRepository {
 
       final newCurrentValue = existing.quantity * newPrice;
       final newProfitLoss = newCurrentValue - existing.totalInvested;
-      final newProfitLossPercentage = (newProfitLoss / existing.totalInvested) * 100;
+      final newProfitLossPercentage =
+          (newProfitLoss / existing.totalInvested) * 100;
 
       final response = await _supabase
           .from('holdings')
@@ -210,8 +314,13 @@ class HoldingsRepository {
           .single();
 
       return Holding.fromJson(response);
-    } catch (e,st) {
-      developer.log('Error updating price', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error updating price',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
 
       return null;
     }
@@ -229,8 +338,13 @@ class HoldingsRepository {
           .eq('asset_symbol', assetSymbol);
 
       return true;
-    } catch (e,st) {
-      developer.log('Error deleting holding', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error deleting holding',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -239,9 +353,17 @@ class HoldingsRepository {
   Future<double> getTotalPortfolioValue() async {
     try {
       final holdings = await getHoldings();
-      return holdings.fold<double>(0.0, (sum, holding) => sum + holding.currentValue);
-    } catch (e,st) {
-      developer.log('Error calculating portfolio value', name: 'HoldingsRepository', error: e, stackTrace: st);
+      return holdings.fold<double>(
+        0.0,
+        (sum, holding) => sum + holding.currentValue,
+      );
+    } catch (e, st) {
+      developer.log(
+        'Error calculating portfolio value',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -250,9 +372,17 @@ class HoldingsRepository {
   Future<double> getTotalInvested() async {
     try {
       final holdings = await getHoldings();
-      return holdings.fold<double>(0.0, (sum, holding) => sum + holding.totalInvested);
-    } catch (e,st) {
-      developer.log('Error calculating total invested', name: 'HoldingsRepository', error: e, stackTrace: st);
+      return holdings.fold<double>(
+        0.0,
+        (sum, holding) => sum + holding.totalInvested,
+      );
+    } catch (e, st) {
+      developer.log(
+        'Error calculating total invested',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -261,9 +391,17 @@ class HoldingsRepository {
   Future<double> getTotalProfitLoss() async {
     try {
       final holdings = await getHoldings();
-      return holdings.fold<double>(0.0, (sum, holding) => sum + holding.profitLoss);
-    } catch (e,st) {
-      developer.log('Error calculating total P&L', name: 'HoldingsRepository', error: e, stackTrace: st);
+      return holdings.fold<double>(
+        0.0,
+        (sum, holding) => sum + holding.profitLoss,
+      );
+    } catch (e, st) {
+      developer.log(
+        'Error calculating total P&L',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -273,8 +411,13 @@ class HoldingsRepository {
     try {
       final holdings = await getHoldings();
       return holdings.where((h) => h.assetType == type).toList();
-    } catch (e,st) {
-      developer.log('Error filtering holdings', name: 'HoldingsRepository', error: e, stackTrace: st);
+    } catch (e, st) {
+      developer.log(
+        'Error filtering holdings',
+        name: 'HoldingsRepository',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }

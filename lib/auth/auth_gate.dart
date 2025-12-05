@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:virtual_trading_app/onboarding/onboarding.dart';
 import 'package:virtual_trading_app/screens/home_page.dart';
+import '../core/services/price_monitor_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -37,8 +38,12 @@ class _AuthGateState extends State<AuthGate> {
         final session = snapshot.data?.session;
 
         if (session != null) {
+          // Start price monitor when authenticated
+          PriceMonitorService().start();
           return const HomePage();
         } else {
+          // Stop monitor when logged out
+          PriceMonitorService().stop();
           return const Onboarding();
         }
       },

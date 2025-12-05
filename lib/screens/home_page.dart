@@ -38,11 +38,8 @@ class _HomePageState extends State<HomePage> {
       DashboardScreen(
         userName: widget.userName,
         onNavigateToTab: (index) {
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-          );
+          // Use jumpToPage for instant navigation (no animation stuttering)
+          _pageController.jumpToPage(index);
           setState(() => _currentIndex = index);
         },
       ),
@@ -65,13 +62,12 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: PageView(
         controller: _pageController,
-        // Use page scroll physics for smoother snapping between pages.
-        // This makes light swipes snap reliably to the next page without jitter.
-        physics: const PageScrollPhysics(),
-        pageSnapping: true,
+        // Disable swipe gestures - only allow navigation via bottom nav bar
+        physics: const NeverScrollableScrollPhysics(),
+        pageSnapping: false, // Disable snapping animation for performance
         onPageChanged: (index) {
           setState(() => _currentIndex = index);
-          // Dismiss keyboard when swiping between pages
+          // Dismiss keyboard when changing pages
           FocusManager.instance.primaryFocus?.unfocus();
         },
         children: _screens,
@@ -108,7 +104,7 @@ class _HomePageState extends State<HomePage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               height: 65,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -130,8 +126,8 @@ class _HomePageState extends State<HomePage> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withAlpha((0.42 * 255).round()),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -152,11 +148,8 @@ class _HomePageState extends State<HomePage> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {
-                        _pageController.animateToPage(
-                          i,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                        );
+                        // Use jumpToPage for instant navigation (no animation stuttering)
+                        _pageController.jumpToPage(i);
                         setState(() => _currentIndex = i);
                       },
                       child: Column(

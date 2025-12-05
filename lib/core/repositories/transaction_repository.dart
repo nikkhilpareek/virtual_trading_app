@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 import 'user_repository.dart';
 import 'holdings_repository.dart';
-import 'holding_lot_repository.dart';
 import '../utils/currency_formatter.dart';
 import 'dart:developer' as developer;
 
@@ -12,9 +11,7 @@ class TransactionRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
   final UserRepository _userRepository = UserRepository();
   final HoldingsRepository _holdingsRepository = HoldingsRepository();
-  final HoldingLotRepository _holdingLotRepository = HoldingLotRepository(
-    Supabase.instance.client,
-  );
+  // Lot-based holdings removed; using simple holdings only
 
   /// Get current user's ID
   String? get currentUserId => _supabase.auth.currentUser?.id;
@@ -180,18 +177,8 @@ class TransactionRepository {
 
       final transaction = Transaction.fromJson(response);
 
-      // Create holding lot for this purchase
-      await _holdingLotRepository.createLot(
-        assetSymbol: assetSymbol,
-        assetName: assetName,
-        assetType: assetType,
-        quantity: quantity,
-        purchasePrice: pricePerUnit,
-        transactionId: transaction.id,
-      );
-
       developer.log(
-        'Buy order executed with lot: $assetSymbol x $quantity @ $pricePerUnit',
+        'Buy order executed: $assetSymbol x $quantity @ $pricePerUnit',
         name: 'TransactionRepository',
       );
 
@@ -249,8 +236,7 @@ class TransactionRepository {
         currentPrice: pricePerUnit,
       );
 
-      // Sell lots using FIFO method
-      await _holdingLotRepository.sellFIFO(assetSymbol, quantity);
+      // Lot system removed; selling reduces aggregate holding only
 
       // Create transaction record
       final response = await _supabase
@@ -281,86 +267,7 @@ class TransactionRepository {
     }
   }
 
-  /// Execute a SELL transaction from a specific lot (non-FIFO)
-  Future<Transaction?> executeSellOrderFromLot({
-    required String lotId,
-    required String assetSymbol,
-    required String assetName,
-    required AssetType assetType,
-    required double quantity,
-    required double pricePerUnit,
-  }) async {
-    try {
-      if (currentUserId == null) throw Exception('User not authenticated');
-
-      // Check if user has this holding
-      final holding = await _holdingsRepository.getHoldingBySymbol(assetSymbol);
-      if (holding == null) {
-        throw Exception('You do not own this asset');
-      }
-
-      // Check if user has sufficient quantity overall and within lot
-      if (holding.quantity < quantity) {
-        throw Exception(
-          'Insufficient total quantity. You own ${holding.quantity} units',
-        );
-      }
-
-      // Reduce holding quantity first
-      await _holdingsRepository.reduceHolding(
-        assetSymbol: assetSymbol,
-        quantity: quantity,
-        currentPrice: pricePerUnit,
-      );
-
-      // Reduce from the specific lot and mark inactive if fully sold
-      final reduced = await _holdingLotRepository.reduceQuantityFromLot(
-        lotId,
-        quantity,
-      );
-      if (!reduced) {
-        throw Exception('Failed to reduce quantity from lot');
-      }
-
-      // Credit balance
-      final totalAmount = quantity * pricePerUnit;
-      final balanceUpdated = await _userRepository.addToBalance(totalAmount);
-      if (!balanceUpdated) {
-        throw Exception('Failed to update balance');
-      }
-
-      // Get new balance
-      final newBalance = await _userRepository.getCurrentBalance() ?? 0.0;
-
-      // Create transaction record
-      final response = await _supabase
-          .from('transactions')
-          .insert({
-            'user_id': currentUserId!,
-            'asset_symbol': assetSymbol,
-            'asset_name': assetName,
-            'asset_type': assetType.toJson(),
-            'transaction_type': TransactionType.sell.toJson(),
-            'quantity': quantity,
-            'price_per_unit': pricePerUnit,
-            'total_amount': totalAmount,
-            'balance_after': newBalance,
-            'notes': 'Lot-specific sell: lot_id=$lotId',
-          })
-          .select()
-          .single();
-
-      return Transaction.fromJson(response);
-    } catch (e, st) {
-      developer.log(
-        'Error executing lot-specific sell order',
-        name: 'TransactionRepository',
-        error: e,
-        stackTrace: st,
-      );
-      rethrow;
-    }
-  }
+  // Lot-specific sell removed
 
   /// Get total amount spent (all buy transactions)
   Future<double> getTotalSpent() async {

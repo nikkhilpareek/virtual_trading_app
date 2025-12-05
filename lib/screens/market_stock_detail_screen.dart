@@ -52,13 +52,10 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
 
   Future<void> _initializeAndLoadData() async {
     try {
-      await _localPriceService.loadPrices();
+      // LocalPriceService loads on demand, no need to pre-load
       _loadStockDetails();
     } catch (e) {
-      developer.log(
-        'Error loading local prices: $e',
-        name: 'MarketStockDetail',
-      );
+      developer.log('Error initializing: $e', name: 'MarketStockDetail');
       setState(() {
         _useLocalPrices = false;
       });
@@ -85,15 +82,11 @@ class _MarketStockDetailScreenState extends State<MarketStockDetailScreen> {
     try {
       if (widget.assetType == AssetType.stock && _useLocalPrices) {
         // Use local JSON prices for stocks
-        final price = _localPriceService.getCurrentPrice(widget.symbol);
-        final changePercent = _localPriceService.getChangePercent(
-          widget.symbol,
-        );
+        final price = await _localPriceService.getStockPrice(widget.symbol);
 
         if (mounted) {
           setState(() {
             _localPrice = price;
-            _localChangePercent = changePercent;
             _isLoading = false;
           });
         }

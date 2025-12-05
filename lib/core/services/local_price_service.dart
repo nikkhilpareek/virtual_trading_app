@@ -1,142 +1,67 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:developer' as developer;
 
-/// Price point data model
-class PricePoint {
-  final String time;
-  final double price;
-
-  PricePoint({required this.time, required this.price});
-
-  @override
-  String toString() => 'PricePoint(time: $time, price: $price)';
-}
-
-/// Service to load stock prices from local JSON file
-/// Uses assets/Stock Prices/stock_prices_2min_nov26.json
 class LocalPriceService {
-  static final LocalPriceService _instance = LocalPriceService._internal();
-  factory LocalPriceService() => _instance;
-  LocalPriceService._internal();
+  // Configure asset paths here; supports JSON or CSV (future)
+  // Example JSON structure: [{"symbol":"RELIANCE","price": 2500.0}, ...]
+  static const String stockJsonPath =
+      'assets/Stock Prices/stock_prices_2min_nov26.json';
 
-  Map<String, List<PricePoint>>? _priceData;
-  bool _isLoaded = false;
+  Map<String, double>? _stockPrices;
 
-  /// Load the JSON file once
-  Future<void> loadPrices() async {
-    if (_isLoaded) return;
-
+  Future<void> _ensureLoaded() async {
+    // Reload once per app run or on demand
+    if (_stockPrices != null) return;
     try {
-      developer.log(
-        'Loading local stock prices from JSON...',
-        name: 'LocalPriceService',
-      );
-      final String jsonString = await rootBundle.loadString(
-        'assets/Stock Prices/stock_prices_2min_nov26.json',
-      );
-
-      final Map<String, dynamic> jsonData = json.decode(jsonString);
-      final List<dynamic> stocks = jsonData['stocks'] as List;
-
-      _priceData = {};
-      for (var stock in stocks) {
-        final String symbol = stock['symbol'] as String;
-        final List<dynamic> dataPoints = stock['data'] as List;
-
-        _priceData![symbol] = dataPoints.map((point) {
-          return PricePoint(
-            time: point['time'] as String,
-            price: (point['price'] as num).toDouble(),
-          );
-        }).toList();
+      final raw = await rootBundle.loadString(stockJsonPath);
+      final data = json.decode(raw);
+      final Map<String, double> map = {};
+      if (data is List) {
+        for (final item in data) {
+          final symbol = (item['symbol'] ?? item['Symbol'] ?? '')
+              .toString()
+              .toUpperCase();
+          final priceVal = item['price'] ?? item['Close'] ?? item['close'];
+          if (symbol.isEmpty || priceVal == null) continue;
+          map[symbol] = (priceVal as num).toDouble();
+        }
+      } else if (data is Map) {
+        data.forEach((key, value) {
+          if (value == null) return;
+          map[key.toString().toUpperCase()] = (value as num).toDouble();
+        });
       }
-
-      _isLoaded = true;
+      _stockPrices = map;
       developer.log(
-        'Loaded prices for ${_priceData!.length} stocks',
+        'LocalPriceService: Loaded ${map.length} symbols from assets',
         name: 'LocalPriceService',
       );
     } catch (e, st) {
       developer.log(
-        'Error loading local prices',
-        name: 'LocalPriceService',
+        'LocalPriceService: Failed to load local prices',
         error: e,
         stackTrace: st,
+        name: 'LocalPriceService',
       );
+      _stockPrices = {};
     }
   }
 
-  /// Get current (latest) price for a symbol
-  double? getCurrentPrice(String symbol) {
-    if (!_isLoaded || _priceData == null) return null;
-
-    final prices = _priceData![symbol];
-    if (prices == null || prices.isEmpty) return null;
-
-    // Return the latest price
-    return prices.last.price;
+  Future<double?> getStockPrice(String symbol) async {
+    await _ensureLoaded();
+    if (_stockPrices == null) return null;
+    return _stockPrices![symbol.toUpperCase()];
   }
 
-  /// Get price at a specific time
-  double? getPriceAtTime(String symbol, String time) {
-    if (!_isLoaded || _priceData == null) return null;
-
-    final prices = _priceData![symbol];
-    if (prices == null || prices.isEmpty) return null;
-
-    try {
-      final pricePoint = prices.firstWhere(
-        (p) => p.time == time,
-        orElse: () => prices.last,
-      );
-      return pricePoint.price;
-    } catch (e) {
-      return prices.last.price;
+  Future<Map<String, double>> getBatchStockPrices(List<String> symbols) async {
+    await _ensureLoaded();
+    final Map<String, double> out = {};
+    if (_stockPrices == null) return out;
+    for (final s in symbols) {
+      final p = _stockPrices![s.toUpperCase()];
+      if (p != null) out[s] = p;
     }
-  }
-
-  /// Get price change percentage (compared to first price of the day)
-  double getChangePercent(String symbol) {
-    if (!_isLoaded || _priceData == null) return 0.0;
-
-    final prices = _priceData![symbol];
-    if (prices == null || prices.length < 2) return 0.0;
-
-    final firstPrice = prices.first.price;
-    final lastPrice = prices.last.price;
-
-    return ((lastPrice - firstPrice) / firstPrice) * 100;
-  }
-
-  /// Get all price points for a symbol
-  List<PricePoint>? getAllPrices(String symbol) {
-    if (!_isLoaded || _priceData == null) return null;
-    return _priceData![symbol];
-  }
-
-  /// Get list of all available symbols
-  List<String> getAvailableSymbols() {
-    if (!_isLoaded || _priceData == null) return [];
-    return _priceData!.keys.toList();
-  }
-
-  /// Simulate real-time updates by cycling through price points
-  /// Returns the next price point in the sequence
-  int _currentIndex = 0;
-
-  PricePoint? getNextPrice(String symbol) {
-    if (!_isLoaded || _priceData == null) return null;
-
-    final prices = _priceData![symbol];
-    if (prices == null || prices.isEmpty) return null;
-
-    _currentIndex = (_currentIndex + 1) % prices.length;
-    return prices[_currentIndex];
-  }
-
-  /// Reset simulation index
-  void resetSimulation() {
-    _currentIndex = 0;
+    return out;
   }
 }

@@ -7,9 +7,8 @@ class PriceUpdater {
   final LocalPriceService _priceService = LocalPriceService();
   final HoldingsRepository _holdingsRepo = HoldingsRepository();
 
-  /// Initialize and load local prices
+  /// Initialize - LocalPriceService loads on demand
   Future<void> initialize() async {
-    await _priceService.loadPrices();
     developer.log('PriceUpdater initialized', name: 'PriceUpdater');
   }
 
@@ -17,9 +16,11 @@ class PriceUpdater {
   Future<void> updateAllHoldingPrices() async {
     try {
       final holdings = await _holdingsRepo.getHoldings();
+      final symbols = holdings.map((h) => h.assetSymbol).toList();
+      final prices = await _priceService.getBatchStockPrices(symbols);
 
       for (final holding in holdings) {
-        final currentPrice = _priceService.getCurrentPrice(holding.assetSymbol);
+        final currentPrice = prices[holding.assetSymbol];
         if (currentPrice != null) {
           await _holdingsRepo.updateCurrentPrice(
             holding.assetSymbol,
@@ -42,12 +43,7 @@ class PriceUpdater {
   }
 
   /// Get current price for a symbol
-  double? getCurrentPrice(String symbol) {
-    return _priceService.getCurrentPrice(symbol);
-  }
-
-  /// Get price change percentage
-  double getChangePercent(String symbol) {
-    return _priceService.getChangePercent(symbol);
+  Future<double?> getCurrentPrice(String symbol) async {
+    return await _priceService.getStockPrice(symbol);
   }
 }

@@ -1,4 +1,4 @@
-#!/home/deepak/Desktop/virtual_trading_app/venv/bin/python3
+#!/home/dhruv/Desktop/Major/virtual_trading_app/venv/bin/python
 
 import datetime
 import os

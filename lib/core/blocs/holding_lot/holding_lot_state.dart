@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import '../../models/models.dart';
 
 /// Holding Lot States
+/// DEPRECATED - Use HoldingsBloc instead
 abstract class HoldingLotState extends Equatable {
   const HoldingLotState();
 
@@ -21,7 +21,7 @@ class HoldingLotLoading extends HoldingLotState {
 
 /// Lots loaded successfully
 class HoldingLotsLoaded extends HoldingLotState {
-  final List<HoldingLot> lots;
+  final List<dynamic> lots;
   final String? assetSymbol;
 
   const HoldingLotsLoaded({required this.lots, this.assetSymbol});
@@ -30,19 +30,20 @@ class HoldingLotsLoaded extends HoldingLotState {
   List<Object?> get props => [lots, assetSymbol];
 
   /// Get total quantity across all lots
-  double get totalQuantity => lots.fold(0.0, (sum, lot) => sum + lot.quantity);
+  double get totalQuantity =>
+      lots.fold(0.0, (sum, lot) => sum + (lot?.quantity ?? 0.0));
 
   /// Get total invested across all lots
   double get totalInvested =>
-      lots.fold(0.0, (sum, lot) => sum + lot.totalInvested);
+      lots.fold(0.0, (sum, lot) => sum + (lot?.totalInvested ?? 0.0));
 
   /// Get total current value across all lots
   double get totalCurrentValue =>
-      lots.fold(0.0, (sum, lot) => sum + lot.currentValue);
+      lots.fold(0.0, (sum, lot) => sum + (lot?.currentValue ?? 0.0));
 
   /// Get total profit/loss across all lots
   double get totalProfitLoss =>
-      lots.fold(0.0, (sum, lot) => sum + lot.profitLoss);
+      lots.fold(0.0, (sum, lot) => sum + (lot?.profitLoss ?? 0.0));
 
   /// Get weighted average purchase price
   double get averagePurchasePrice {
@@ -57,15 +58,17 @@ class HoldingLotsLoaded extends HoldingLotState {
   }
 
   /// Get profitable lots
-  List<HoldingLot> get profitableLots =>
-      lots.where((lot) => lot.isProfitable).toList();
+  List<dynamic> get profitableLots =>
+      lots.where((lot) => lot != null && lot.isProfitable).toList();
 
   /// Get loss-making lots
-  List<HoldingLot> get lossLots => lots.where((lot) => lot.isLoss).toList();
+  List<dynamic> get lossLots =>
+      lots.where((lot) => lot != null && lot.isLoss).toList();
 
   /// Get break-even lots
-  List<HoldingLot> get breakEvenLots =>
-      lots.where((lot) => !lot.isProfitable && !lot.isLoss).toList();
+  List<dynamic> get breakEvenLots => lots
+      .where((lot) => lot != null && !lot.isProfitable && !lot.isLoss)
+      .toList();
 }
 
 /// No lots found

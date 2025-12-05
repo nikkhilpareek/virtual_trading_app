@@ -8,6 +8,10 @@ import 'core/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Performance optimizations for low-end devices
+  // - Reduced animation durations
+  // - Disabled expensive visual effects (blur, gradients)
+  // - Simplified widget trees
   //supabase setup with persistent session and auto-refresh
   await Supabase.initialize(
     url: 'https://edmeobztjodvmichfmej.supabase.co',
