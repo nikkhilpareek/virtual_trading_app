@@ -579,8 +579,10 @@ class _CryptoScreenState extends State<CryptoScreen>
             GestureDetector(
               onTap: _fetchNewsHighlights,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
@@ -653,10 +655,7 @@ class _CryptoScreenState extends State<CryptoScreen>
                       // Header
                       Row(
                         children: [
-                          const Text(
-                            '🔥',
-                            style: TextStyle(fontSize: 20),
-                          ),
+                          const Text('🔥', style: TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Text(
                             'Market Highlight',
@@ -724,8 +723,7 @@ class _CryptoScreenState extends State<CryptoScreen>
       if (_newsPageController.hasClients &&
           _newsHighlights.isNotEmpty &&
           mounted) {
-        final nextPage =
-            (_currentNewsIndex + 1) % _newsHighlights.length;
+        final nextPage = (_currentNewsIndex + 1) % _newsHighlights.length;
         _newsPageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 600),
