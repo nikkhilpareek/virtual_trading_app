@@ -64,6 +64,9 @@ dependencies:
   # Text to speech
   flutter_tts: ^4.2.0
 
+  # News ticker marquee
+  marquee: ^2.2.3
+
   # Authentication
   supabase_flutter: ^2.10.3
   google_sign_in: ^6.2.2

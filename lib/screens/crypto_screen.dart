@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:ui';
+import 'dart:async';
+import 'dart:developer' as developer;
 import '../core/blocs/blocs.dart';
 import '../core/models/models.dart';
 import '../core/services/freecrypto_service.dart';
+import '../core/services/market_news_service.dart';
 import '../core/utils/currency_formatter.dart';
 import '../widgets/crypto_logo.dart';
 import 'crypto_detail_screen.dart';
-import 'dart:async';
-import 'dart:developer' as developer;
 
 /// CryptoScreen
 /// Complete cryptocurrency trading screen with market data, holdings, and buy/sell functionality
@@ -27,6 +29,14 @@ class _CryptoScreenState extends State<CryptoScreen>
   final FocusNode _searchFocusNode = FocusNode();
   List<CryptoQuote> _filteredCryptos = [];
   bool _isSearching = false;
+  // News highlights state
+  List<String> _newsHighlights = [];
+  bool _newsLoading = false;
+  String? _newsError;
+  late final MarketNewsService _newsService;
+  late PageController _newsPageController;
+  Timer? _newsAutoScrollTimer;
+  int _currentNewsIndex = 0;
 
   @override
   void initState() {
@@ -37,6 +47,12 @@ class _CryptoScreenState extends State<CryptoScreen>
     context.read<CryptoBloc>().add(const LoadCryptoMarket(limit: 5));
     // Refresh holdings to show correct data
     context.read<HoldingsBloc>().add(const LoadHoldings());
+
+    // Configure backend URL candidates automatically (Android emulator and desktop)
+    _newsService = MarketNewsService();
+    _newsPageController = PageController();
+    _fetchNewsHighlights();
+    _startNewsAutoScroll();
   }
 
   @override
@@ -63,8 +79,10 @@ class _CryptoScreenState extends State<CryptoScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
+    _newsAutoScrollTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _newsPageController.dispose();
     super.dispose();
   }
 
@@ -117,6 +135,14 @@ class _CryptoScreenState extends State<CryptoScreen>
                   ),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Modern News Ticker (Frosted Glass)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildNewsTicker(),
             ),
 
             const SizedBox(height: 16),
@@ -210,6 +236,27 @@ class _CryptoScreenState extends State<CryptoScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _fetchNewsHighlights() async {
+    setState(() {
+      _newsLoading = true;
+      _newsError = null;
+    });
+    try {
+      final highlights = await _newsService.fetchHighlights(limit: 5);
+      if (!mounted) return;
+      setState(() {
+        _newsHighlights = highlights;
+        _newsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _newsError = 'Failed to load highlights: $e';
+        _newsLoading = false;
+      });
+    }
   }
 
   /// Perform search with isolate-based multithreading for production
@@ -452,16 +499,19 @@ class _CryptoScreenState extends State<CryptoScreen>
               context.read<CryptoBloc>().add(
                 const RefreshCryptoMarket(limit: 5),
               );
+              await _fetchNewsHighlights();
               // Reduced delay for faster UI response
               await Future.delayed(const Duration(milliseconds: 200));
             },
-            child: ListView.separated(
+            child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
               itemCount: cryptos.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final crypto = cryptos[index];
-                return _buildCryptoCard(crypto);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildCryptoCard(crypto),
+                );
               },
             ),
           );
@@ -490,6 +540,206 @@ class _CryptoScreenState extends State<CryptoScreen>
     );
   }
 
+  /// Card-based news carousel with auto-scroll and swipe support
+  Widget _buildNewsTicker() {
+    if (_newsLoading) {
+      return Container(
+        height: 140,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: Colors.white.withOpacity(0.05),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      );
+    }
+
+    if (_newsError != null) {
+      return Container(
+        height: 140,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: Colors.white.withOpacity(0.05),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _newsError!,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _fetchNewsHighlights,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_newsHighlights.isEmpty) {
+      return Container(
+        height: 140,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: Colors.white.withOpacity(0.05),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'No news highlights available',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 140,
+      child: PageView.builder(
+        controller: _newsPageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentNewsIndex = index;
+          });
+          _resetNewsAutoScroll();
+        },
+        itemCount: _newsHighlights.length,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.08),
+                  Colors.white.withOpacity(0.03),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Stack(
+              children: [
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          const Text('🔥', style: TextStyle(fontSize: 20)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Market Highlight',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // News text
+                      Expanded(
+                        child: Text(
+                          _newsHighlights[index],
+                          style: const TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Indicator dots
+                Positioned(
+                  bottom: 12,
+                  right: 16,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      _newsHighlights.length,
+                      (dotIndex) => Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: dotIndex == index
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Start auto-scroll for news carousel
+  void _startNewsAutoScroll() {
+    _newsAutoScrollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_newsPageController.hasClients &&
+          _newsHighlights.isNotEmpty &&
+          mounted) {
+        final nextPage = (_currentNewsIndex + 1) % _newsHighlights.length;
+        _newsPageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  /// Reset auto-scroll timer when user manually swipes
+  void _resetNewsAutoScroll() {
+    _newsAutoScrollTimer?.cancel();
+    _startNewsAutoScroll();
+  }
+
+  /// Top card showing AI-generated market highlights from backend
   /// Crypto Card Widget for Market Tab
   Widget _buildCryptoCard(CryptoQuote crypto) {
     final isPositive = crypto.changePercent24h >= 0;

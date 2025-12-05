@@ -1,0 +1,19 @@
+{
+  "name": "market-news-summarizer",
+  "version": "1.0.0",
+  "description": "Backend for AI Market News Summarizer (stock + crypto)",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
