@@ -1072,7 +1072,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildActionButton(
           'View Orders',
           Icons.pending_actions,
-          const Color(0xFFE5BCE7),
+          Theme.of(context).colorScheme.primary,
           () {
             Navigator.push(
               context,
