@@ -4,11 +4,15 @@ import 'stock_detail_event.dart';
 import 'stock_detail_state.dart';
 import '../../models/holding.dart';
 import '../../models/transaction.dart';
+import '../../services/freecrypto_service.dart';
+import '../../services/local_price_service.dart';
 import 'dart:developer' as developer;
 
 /// BLoC for managing stock detail and transaction history
 class StockDetailBloc extends Bloc<StockDetailEvent, StockDetailState> {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final FreeCryptoService _cryptoService = FreeCryptoService();
+  final LocalPriceService _priceService = LocalPriceService();
 
   StockDetailBloc() : super(StockDetailInitial()) {
     on<LoadStockDetail>(_onLoadStockDetail);
@@ -62,6 +66,47 @@ class StockDetailBloc extends Bloc<StockDetailEvent, StockDetailState> {
           'Found holding: ${holding.quantity} shares',
           name: 'StockDetailBloc',
         );
+
+        // Fetch live price for crypto holdings
+        if (holding.assetType.toString().contains('crypto')) {
+          try {
+            final cryptoQuote = await _cryptoService.getCryptoPrice(
+              assetSymbol,
+            );
+            if (cryptoQuote != null) {
+              holding = holding.copyWith(currentPrice: cryptoQuote.price);
+              developer.log(
+                'Updated currentPrice for $assetSymbol to ${cryptoQuote.price}',
+                name: 'StockDetailBloc',
+              );
+            }
+          } catch (e) {
+            developer.log(
+              'Error fetching live price for $assetSymbol: $e',
+              name: 'StockDetailBloc',
+            );
+            // Continue with database price if API fails
+          }
+        }
+        // Fetch live price for stock holdings
+        else if (holding.assetType.toString().contains('stock')) {
+          try {
+            final price = await _priceService.getStockPrice(assetSymbol);
+            if (price != null) {
+              holding = holding.copyWith(currentPrice: price);
+              developer.log(
+                'Updated currentPrice for $assetSymbol to $price',
+                name: 'StockDetailBloc',
+              );
+            }
+          } catch (e) {
+            developer.log(
+              'Error fetching live price for $assetSymbol: $e',
+              name: 'StockDetailBloc',
+            );
+            // Continue with database price if API fails
+          }
+        }
       } else {
         developer.log(
           'No holding found for $assetSymbol',

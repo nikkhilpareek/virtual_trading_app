@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:virtual_trading_app/onboarding/onboarding.dart';
 import 'package:virtual_trading_app/screens/home_page.dart';
 import '../core/services/price_monitor_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../core/blocs/blocs.dart';
+import '../core/repositories/transaction_repository.dart';
+import '../core/models/transaction.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -12,6 +17,15 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  StreamSubscription<List<Transaction>>? _txSub;
+
+  @override
+  void dispose() {
+    _txSub?.cancel();
+    PriceMonitorService().stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
@@ -40,10 +54,22 @@ class _AuthGateState extends State<AuthGate> {
         if (session != null) {
           // Start price monitor when authenticated
           PriceMonitorService().start();
+
+          // Listen to transactions and refresh holdings on changes
+          _txSub?.cancel();
+          _txSub = TransactionRepository().watchTransactions().listen((_) {
+            if (mounted) {
+              // Refresh holdings and orders to reflect auto-sells
+              context.read<HoldingsBloc>().add(const RefreshHoldings());
+              context.read<OrderBloc>().add(const LoadPendingOrders());
+            }
+          });
           return const HomePage();
         } else {
           // Stop monitor when logged out
           PriceMonitorService().stop();
+          _txSub?.cancel();
+          _txSub = null;
           return const Onboarding();
         }
       },

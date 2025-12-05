@@ -421,4 +421,17 @@ class HoldingsRepository {
       return [];
     }
   }
+
+  /// Sell a holding (wrapper for reduceHolding)
+  Future<Holding?> sellHolding(
+    String assetSymbol,
+    double quantity,
+    double currentPrice,
+  ) async {
+    return reduceHolding(
+      assetSymbol: assetSymbol,
+      quantity: quantity,
+      currentPrice: currentPrice,
+    );
+  }
 }

@@ -8,6 +8,7 @@ import '../repositories/holdings_repository.dart';
 import '../repositories/transaction_repository.dart';
 import 'yfinance_service.dart';
 import 'local_price_service.dart';
+import 'freecrypto_service.dart';
 
 /// Monitors prices for holdings and triggers full sells
 /// when stop-loss is breached or price moves outside bracket.
@@ -21,9 +22,10 @@ class PriceMonitorService {
   final _txRepo = TransactionRepository();
   final _yfin = YFinanceService();
   final _local = LocalPriceService();
+  final _crypto = FreeCryptoService();
 
   Timer? _timer;
-  Duration interval = const Duration(seconds: 20);
+  Duration interval = const Duration(seconds: 5);
 
   bool get _isAuthenticated => _supabase.auth.currentUser != null;
 
@@ -92,16 +94,18 @@ class PriceMonitorService {
           }
         }
       }
-      // Fetch individually for crypto (no batch endpoint)
+      // Fetch individually for crypto using the same service as UI
       for (final sym in cryptoSymbols) {
-        if (isWeekend) {
-          final p = await _local.getStockPrice(
-            sym,
-          ); // reuse local source if crypto included
-          if (p != null) latestPrices[sym] = p;
-        } else {
-          final q = await _yfin.getCryptoQuote(sym);
-          if (q != null) latestPrices[sym] = q.price;
+        try {
+          final q = await _crypto.getCryptoPrice(sym);
+          if (q != null) {
+            latestPrices[sym] = q.price;
+          }
+        } catch (e) {
+          developer.log(
+            'Crypto price fetch failed for $sym: $e',
+            name: 'PriceMonitorService',
+          );
         }
       }
 
