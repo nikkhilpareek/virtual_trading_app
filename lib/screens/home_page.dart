@@ -831,6 +831,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Default values
             double stonkBalance = 0.0;
             double portfolioValue = 0.0;
+            double investedAmount = 0.0;
             double profitLoss = 0.0;
             double profitLossPercentage = 0.0;
 
@@ -841,7 +842,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Get portfolio stats
             if (holdingsState is HoldingsLoaded) {
-              portfolioValue = holdingsState.totalValue;
+              portfolioValue =
+                  holdingsState.totalValue; // current value of holdings
+              investedAmount = holdingsState
+                  .totalInvested; // total amount invested (cost basis)
               profitLoss = holdingsState.totalProfitLoss;
               profitLossPercentage = holdingsState.totalProfitLossPercentage;
             }
@@ -973,7 +977,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              CurrencyFormatter.formatINR(portfolioValue),
+                              CurrencyFormatter.formatINR(investedAmount),
                               style: TextStyle(
                                 fontFamily: 'ClashDisplay',
                                 fontSize: 16,

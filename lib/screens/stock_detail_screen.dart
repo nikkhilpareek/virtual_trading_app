@@ -163,6 +163,8 @@ class _StockDetailViewState extends State<_StockDetailView> {
                       const SizedBox(height: 24),
                       _buildActiveOrdersSection(context),
                       const SizedBox(height: 24),
+                      _buildAppliedRulesCard(context),
+                      const SizedBox(height: 24),
                       _buildStatisticsSection(context, state),
                       const SizedBox(height: 24),
                       _buildOrderTypeSection(context),
@@ -289,10 +291,10 @@ class _StockDetailViewState extends State<_StockDetailView> {
               ),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      'Avg Price',
+                      'Current Price',
                       style: TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 14,
@@ -301,7 +303,13 @@ class _StockDetailViewState extends State<_StockDetailView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      CurrencyFormatter.formatINR(currentHolding.averagePrice),
+                      currentHolding.currentPrice != null
+                          ? CurrencyFormatter.formatINR(
+                              currentHolding.currentPrice!,
+                            )
+                          : CurrencyFormatter.formatINR(
+                              currentHolding.averagePrice,
+                            ),
                       style: const TextStyle(
                         fontFamily: 'ClashDisplay',
                         fontSize: 20,
@@ -774,6 +782,302 @@ class _StockDetailViewState extends State<_StockDetailView> {
     return _OrderTypeSection(holding: holding);
   }
 
+  /// Build Applied Rules Card (showing active stop-loss and bracket)
+  Widget _buildAppliedRulesCard(BuildContext context) {
+    final currentPrice = holding.currentPrice ?? holding.averagePrice;
+    final hasStopLoss = holding.stopLoss != null;
+    final hasBracket =
+        holding.bracketLower != null || holding.bracketUpper != null;
+
+    if (!hasStopLoss && !hasBracket) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.purple.withAlpha((0.1 * 255).round()),
+            Colors.blue.withAlpha((0.05 * 255).round()),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.purple.withAlpha((0.3 * 255).round()),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withAlpha((0.2 * 255).round()),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.rule, color: Colors.purple, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Risk Management Rules Active',
+                style: TextStyle(
+                  fontFamily: 'ClashDisplay',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Stop-Loss Rule
+          if (hasStopLoss)
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withAlpha((0.1 * 255).round()),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.orange.withAlpha((0.3 * 255).round()),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.shield,
+                                color: Colors.orange,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Stop-Loss Active',
+                                style: TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Trigger Price: ${CurrencyFormatter.formatINR(holding.stopLoss!)}',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 13,
+                              color: Colors.white.withAlpha(
+                                (0.7 * 255).round(),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'Current: ${CurrencyFormatter.formatINR(currentPrice)}',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 13,
+                              color: currentPrice <= holding.stopLoss!
+                                  ? Colors.red
+                                  : Colors.green.withAlpha((0.7 * 255).round()),
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _showClearRuleDialog(context, 'Stop-Loss');
+                        },
+                        icon: const Icon(Icons.close, color: Colors.orange),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasBracket) const SizedBox(height: 12),
+              ],
+            ),
+          // Bracket Rule
+          if (hasBracket)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha((0.1 * 255).round()),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.blue.withAlpha((0.3 * 255).round()),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.account_tree,
+                            color: Colors.blue,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Bracket Active',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (holding.bracketLower != null)
+                        Text(
+                          'Lower: ${CurrencyFormatter.formatINR(holding.bracketLower!)}',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 13,
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
+                          ),
+                        ),
+                      if (holding.bracketUpper != null)
+                        Text(
+                          'Upper: ${CurrencyFormatter.formatINR(holding.bracketUpper!)}',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 13,
+                            color: Colors.white.withAlpha((0.7 * 255).round()),
+                          ),
+                        ),
+                      Text(
+                        'Current: ${CurrencyFormatter.formatINR(currentPrice)}',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 13,
+                          color:
+                              (holding.bracketLower != null &&
+                                      currentPrice < holding.bracketLower!) ||
+                                  (holding.bracketUpper != null &&
+                                      currentPrice > holding.bracketUpper!)
+                              ? Colors.red
+                              : Colors.green.withAlpha((0.7 * 255).round()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      _showClearRuleDialog(context, 'Bracket');
+                    },
+                    icon: const Icon(Icons.close, color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Show dialog to clear risk rules
+  void _showClearRuleDialog(BuildContext context, String ruleType) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Clear $ruleType?',
+          style: const TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'This will remove the $ruleType rule from your holding.',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            color: Colors.white.withAlpha((0.8 * 255).round()),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white.withAlpha((0.6 * 255).round()),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _clearRule(context, ruleType);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              'Clear',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Clear risk rule
+  void _clearRule(BuildContext context, String ruleType) {
+    final repo = HoldingsRepository();
+
+    if (ruleType == 'Stop-Loss') {
+      repo.setStopLoss(holding.assetSymbol, null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stop-Loss cleared'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else if (ruleType == 'Bracket') {
+      repo.setBracket(holding.assetSymbol, lower: null, upper: null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bracket cleared'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // Refresh the screen
+    context.read<StockDetailBloc>().add(LoadStockDetail(holding.assetSymbol));
+  }
+
   /// Build Active Orders Section
   Widget _buildActiveOrdersSection(BuildContext context) {
     return BlocBuilder<OrderBloc, OrderState>(
@@ -791,7 +1095,28 @@ class _StockDetailViewState extends State<_StockDetailView> {
               .toList();
         }
 
-        if (holdingOrders.isEmpty) {
+        // Create synthetic orders for active risk rules
+        List<Map<String, dynamic>> syntheticRules = [];
+
+        if (holding.stopLoss != null) {
+          syntheticRules.add({
+            'type': 'stopLoss',
+            'price': holding.stopLoss,
+            'label': 'Stop-Loss',
+          });
+        }
+
+        if (holding.bracketLower != null || holding.bracketUpper != null) {
+          syntheticRules.add({
+            'type': 'bracket',
+            'lower': holding.bracketLower,
+            'upper': holding.bracketUpper,
+            'label': 'Bracket',
+          });
+        }
+
+        // Hide section if no orders and no rules
+        if (holdingOrders.isEmpty && syntheticRules.isEmpty) {
           return const SizedBox.shrink();
         }
 
@@ -802,7 +1127,7 @@ class _StockDetailViewState extends State<_StockDetailView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Active Orders',
+                  'Active Orders & Rules',
                   style: TextStyle(
                     fontFamily: 'ClashDisplay',
                     fontSize: 18,
@@ -820,7 +1145,7 @@ class _StockDetailViewState extends State<_StockDetailView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${holdingOrders.length}',
+                    '${holdingOrders.length + syntheticRules.length}',
                     style: const TextStyle(
                       fontFamily: 'ClashDisplay',
                       fontSize: 12,
@@ -832,11 +1157,314 @@ class _StockDetailViewState extends State<_StockDetailView> {
               ],
             ),
             const SizedBox(height: 16),
+            // Show actual orders
             ...holdingOrders.map((order) => _buildOrderCard(context, order)),
+            // Show synthetic rules as cards
+            ...syntheticRules.map((rule) => _buildRuleAsCard(context, rule)),
           ],
         );
       },
     );
+  }
+
+  /// Build risk rule as a card in the Active Orders section
+  Widget _buildRuleAsCard(BuildContext context, Map<String, dynamic> rule) {
+    final currentPrice = holding.currentPrice ?? holding.averagePrice;
+
+    if (rule['type'] == 'stopLoss') {
+      final stopLossPrice = rule['price'] as double;
+      final isTriggered = currentPrice <= stopLossPrice;
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.withAlpha((0.1 * 255).round()),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.orange.withAlpha((0.3 * 255).round()),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withAlpha((0.2 * 255).round()),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.shield,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Stop-Loss Rule',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        isTriggered ? '⚠️ WILL TRIGGER' : 'Monitoring',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          color: isTriggered
+                              ? Colors.red
+                              : Colors.orange.withAlpha((0.7 * 255).round()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trigger Price',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 12,
+                        color: Colors.white.withAlpha((0.6 * 255).round()),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      CurrencyFormatter.formatINR(stopLossPrice),
+                      style: const TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Current Price',
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 12,
+                        color: Colors.white.withAlpha((0.6 * 255).round()),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      CurrencyFormatter.formatINR(currentPrice),
+                      style: TextStyle(
+                        fontFamily: 'ClashDisplay',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isTriggered ? Colors.red : Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (rule['type'] == 'bracket') {
+      final lower = rule['lower'] as double?;
+      final upper = rule['upper'] as double?;
+      final isTriggered =
+          (lower != null && currentPrice < lower) ||
+          (upper != null && currentPrice > upper);
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue.withAlpha((0.1 * 255).round()),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.withAlpha((0.3 * 255).round())),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha((0.2 * 255).round()),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.account_tree,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Bracket Rule',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        isTriggered ? '⚠️ WILL TRIGGER' : 'Monitoring',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          color: isTriggered
+                              ? Colors.red
+                              : Colors.blue.withAlpha((0.7 * 255).round()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (lower != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lower Bound',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 12,
+                            color: Colors.white.withAlpha((0.6 * 255).round()),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.formatINR(lower),
+                          style: const TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Current Price',
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 12,
+                            color: Colors.white.withAlpha((0.6 * 255).round()),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.formatINR(currentPrice),
+                          style: TextStyle(
+                            fontFamily: 'ClashDisplay',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: currentPrice < lower
+                                ? Colors.red
+                                : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            if (upper != null)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upper Bound',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          color: Colors.white.withAlpha((0.6 * 255).round()),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        CurrencyFormatter.formatINR(upper),
+                        style: const TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Current Price',
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 12,
+                          color: Colors.white.withAlpha((0.6 * 255).round()),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        CurrencyFormatter.formatINR(currentPrice),
+                        style: TextStyle(
+                          fontFamily: 'ClashDisplay',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: currentPrice > upper
+                              ? Colors.red
+                              : Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   /// Build individual order card
@@ -1116,6 +1744,252 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Sell Order Section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xff121212),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withAlpha((0.1 * 255).round()),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withAlpha((0.1 * 255).round()),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    topRight: Radius.circular(14),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withAlpha((0.2 * 255).round()),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.sell,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Sell Holding',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Sell your holdings at market price',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Sell inputs
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Current holdings info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withAlpha((0.1 * 255).round()),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.withAlpha((0.3 * 255).round()),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Available to Sell',
+                                style: TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 12,
+                                  color: Colors.white.withAlpha(
+                                    (0.6 * 255).round(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${widget.holding.quantity.toStringAsFixed(2)} units',
+                                style: const TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Sale Value',
+                                style: TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 12,
+                                  color: Colors.white.withAlpha(
+                                    (0.6 * 255).round(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                CurrencyFormatter.formatINR(
+                                  widget.holding.quantity * currentPrice,
+                                ),
+                                style: const TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Quantity to Sell',
+                                style: TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _quantityController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                style: const TextStyle(
+                                  fontFamily: 'ClashDisplay',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter quantity',
+                                  hintStyle: TextStyle(
+                                    fontFamily: 'ClashDisplay',
+                                    color: Colors.white.withAlpha(
+                                      (0.3 * 255).round(),
+                                    ),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white.withAlpha(
+                                    (0.05 * 255).round(),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withAlpha(
+                                        (0.2 * 255).round(),
+                                      ),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withAlpha(
+                                        (0.2 * 255).round(),
+                                      ),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: Colors.red,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () => _sellHolding(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Sell',
+                            style: TextStyle(
+                              fontFamily: 'ClashDisplay',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
         // Stop-Loss Order Section
         Container(
           decoration: BoxDecoration(
@@ -1637,6 +2511,181 @@ class _OrderTypeSectionState extends State<_OrderTypeSection> {
           ),
         ),
       ),
+    );
+  }
+
+  void _sellHolding(BuildContext context) {
+    final quantityText = _quantityController.text.trim();
+
+    if (quantityText.isEmpty) {
+      _showError(
+        context,
+        'Invalid Quantity',
+        'Please enter the quantity you want to sell.',
+      );
+      return;
+    }
+
+    final quantity = double.tryParse(quantityText) ?? 0;
+
+    if (quantity <= 0) {
+      _showError(
+        context,
+        'Invalid Quantity',
+        'Quantity must be greater than 0.',
+      );
+      return;
+    }
+
+    if (quantity > widget.holding.quantity) {
+      _showError(
+        context,
+        'Insufficient Holdings',
+        'You can only sell up to ${widget.holding.quantity.toStringAsFixed(2)} units.',
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Confirm Sell',
+          style: TextStyle(
+            fontFamily: 'ClashDisplay',
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: 20,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sell Details:',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white.withAlpha((0.7 * 255).round()),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildConfirmRow('Symbol', widget.holding.assetSymbol),
+            _buildConfirmRow(
+              'Quantity',
+              '${quantity.toStringAsFixed(2)} units',
+            ),
+            _buildConfirmRow(
+              'Price',
+              CurrencyFormatter.formatINR(
+                widget.holding.currentPrice ?? widget.holding.averagePrice,
+              ),
+            ),
+            _buildConfirmRow(
+              'Total',
+              CurrencyFormatter.formatINR(
+                quantity *
+                    (widget.holding.currentPrice ??
+                        widget.holding.averagePrice),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                color: Colors.white.withAlpha((0.6 * 255).round()),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _executeSell(context, quantity);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              'Confirm Sell',
+              style: TextStyle(
+                fontFamily: 'ClashDisplay',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'ClashDisplay',
+              color: Colors.white.withAlpha((0.6 * 255).round()),
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'ClashDisplay',
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _executeSell(BuildContext context, double quantity) {
+    final repo = HoldingsRepository();
+    final currentPrice =
+        widget.holding.currentPrice ?? widget.holding.averagePrice;
+    final totalValue = quantity * currentPrice;
+
+    // Sell the holding
+    repo.sellHolding(widget.holding.assetSymbol, quantity, currentPrice);
+
+    // Reset quantity input
+    _quantityController.clear();
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Successfully sold ${quantity.toStringAsFixed(2)} units for ${CurrencyFormatter.formatINR(totalValue)}',
+          style: const TextStyle(fontFamily: 'ClashDisplay'),
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    // Refresh the holdings
+    context.read<StockDetailBloc>().add(
+      LoadStockDetail(widget.holding.assetSymbol),
     );
   }
 
